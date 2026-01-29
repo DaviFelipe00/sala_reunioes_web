@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using MudBlazor.Services;
 using SalaReunioes.Web.Infrastructure.Data;
 using SalaReunioes.Web.Infrastructure.Services;
+using SalaReunioes.Web.Components; // ADICIONE ESTA LINHA
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -20,6 +21,8 @@ var app = builder.Build();
 
 app.UseStaticFiles();
 app.UseAntiforgery();
+
+// O erro CS0246 deve desaparecer agora
 app.MapRazorComponents<App>().AddInteractiveServerRenderMode();
 
 app.Run();
