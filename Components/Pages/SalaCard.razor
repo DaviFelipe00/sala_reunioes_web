@@ -1,0 +1,37 @@
+@using SalaReunioes.Web.Domain.Entities
+
+<MudCard Elevation="3" Class="rounded-lg mb-4">
+    <MudCardHeader>
+        <CardHeaderContent>
+            <MudText Typo="Typo.h6">@Sala.Nome</MudText>
+        </CardHeaderContent>
+        <CardHeaderActions>
+            <MudChip T="string" Color="@(Sala.Agendamentos.Any(a => a.Inicio <= DateTime.Now && a.Fim >= DateTime.Now) ? Color.Error : Color.Success)">
+                @(Sala.Agendamentos.Any(a => a.Inicio <= DateTime.Now && a.Fim >= DateTime.Now) ? "Ocupada" : "Disponível")
+            </MudChip>
+        </CardHeaderActions>
+    </MudCardHeader>
+    <MudCardContent>
+        <MudText Typo="Typo.subtitle2" Class="mb-2">Reuniões de Hoje:</MudText>
+        @if (!Sala.Agendamentos.Any(a => a.Inicio.Date == DateTime.Today))
+        {
+            <MudText Typo="Typo.body2" Color="Color.Surface">Nenhuma reunião agendada.</MudText>
+        }
+        else
+        {
+            @foreach (var agenda in Sala.Agendamentos.Where(a => a.Inicio.Date == DateTime.Today).OrderBy(a => a.Inicio))
+            {
+                <MudAlert Severity="Severity.Info" Dense="true" Class="mb-1 py-0">
+                    @agenda.Inicio.ToString("HH:mm") - @agenda.Titulo (@agenda.Responsavel)
+                </MudAlert>
+            }
+        }
+    </MudCardContent>
+    <MudCardActions>
+        <MudButton Variant="Variant.Text" Color="Color.Primary" FullWidth="true">Agendar Reunião</MudButton>
+    </MudCardActions>
+</MudCard>
+
+@code {
+    [Parameter] public Sala Sala { get; set; } = new();
+}
