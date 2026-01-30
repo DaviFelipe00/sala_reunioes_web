@@ -1,0 +1,52 @@
+@page "/calendario"
+@using SalaReunioes.Web.Domain.Entities
+@using SalaReunioes.Web.Infrastructure.Services
+@inject AgendamentoService Service
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-8">
+    <MudText Typo="Typo.h4" Color="Color.Primary" Class="fw-bold mb-6">Calendário de Reuniões</MudText>
+
+    <MudPaper Class="pa-4 rounded-lg shadow-sm">
+        <MudDatePicker Label="Filtrar por Data" @bind-Date="dataFiltro" PickerVariant="PickerVariant.Static" Color="Color.Primary" />
+        
+        <MudText Typo="Typo.h6" Class="mt-6 mb-4">Reuniões em @dataFiltro?.ToString("dd/MM/yyyy")</MudText>
+        
+        @if (agendamentosDoDia == null || !agendamentosDoDia.Any())
+        {
+            <MudAlert Severity="Severity.Normal">Nenhum compromisso para este dia.</MudAlert>
+        }
+        else
+        {
+            <MudTable Items="@agendamentosDoDia" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="0">
+                <HeaderContent>
+                    <MudTh>Hora</MudTh>
+                    <MudTh>Sala</MudTh>
+                    <MudTh>Título</MudTh>
+                    <MudTh>Responsável</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="Hora">@context.Inicio.ToLocalTime().ToString("HH:mm") - @context.Fim.ToLocalTime().ToString("HH:mm")</MudTd>
+                    @* Nota: Precisaríamos carregar o nome da sala no serviço para exibir aqui *@
+                    <MudTd DataLabel="Sala">Sala Selecionada</MudTd>
+                    <MudTd DataLabel="Título">@context.Titulo</MudTd>
+                    <MudTd DataLabel="Responsável">@context.Responsavel</MudTd>
+                </RowTemplate>
+            </MudTable>
+        }
+    </MudPaper>
+</MudContainer>
+
+@code {
+    private DateTime? dataFiltro = DateTime.Today;
+    private List<Agendamento> agendamentosDoDia = new();
+
+    // Lógica simples para exemplo; em um sistema real, o serviço filtraria por data
+    protected override async Task OnInitializedAsync()
+    {
+        var salas = await Service.ListarSalasComAgendamentosAsync();
+        agendamentosDoDia = salas.SelectMany(s => s.Agendamentos)
+                                .Where(a => a.Inicio.Date == dataFiltro?.Date)
+                                .OrderBy(a => a.Inicio)
+                                .ToList();
+    }
+}

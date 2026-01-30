@@ -7,13 +7,11 @@ namespace SalaReunioes.Web.Infrastructure.Services;
 public class AgendamentoService(AppDbContext context)
 {
     /// <summary>
-    /// Lista todas as salas e inclui apenas os agendamentos de hoje em diante.
-    /// Resolve o erro de timestamptz usando DateTime.UtcNow.Date.
+    /// Lista todas as salas com reuniões de hoje em diante (Ideal para o Dashboard).
     /// </summary>
     public async Task<List<Sala>> ListarSalasComAgendamentosAsync()
     {
-        // Define o início do dia de hoje em UTC para comparação segura no Postgres
-        var hojeUtc = DateTime.UtcNow.Date;
+        var hojeUtc = DateTime.SpecifyKind(DateTime.UtcNow.Date, DateTimeKind.Utc);
 
         return await context.Salas
             .Include(s => s.Agendamentos
@@ -23,24 +21,35 @@ public class AgendamentoService(AppDbContext context)
     }
 
     /// <summary>
-    /// Realiza um novo agendamento validando se não há conflito de horário.
-    /// Força o Kind Utc para evitar erros de operação binária no banco.
+    /// Busca todos os agendamentos num intervalo específico (Essencial para o Calendário).
+    /// </summary>
+    public async Task<List<Agendamento>> ObterAgendamentosPorPeriodoAsync(DateTime inicio, DateTime fim)
+    {
+        var inicioUtc = DateTime.SpecifyKind(inicio, DateTimeKind.Utc);
+        var fimUtc = DateTime.SpecifyKind(fim, DateTimeKind.Utc);
+
+        return await context.Agendamentos
+            .Where(a => a.Inicio >= inicioUtc && a.Inicio <= fimUtc)
+            .OrderBy(a => a.Inicio)
+            .ToListAsync();
+    }
+
+    /// <summary>
+    /// Realiza um novo agendamento validando conflitos e forçando UTC.
     /// </summary>
     public async Task<(bool Sucesso, string Mensagem)> ReservarAsync(Agendamento novo)
     {
-        // Garante que as datas vindas da UI sejam tratadas como UTC
+        // Garante Kind Utc para compatibilidade com PostgreSQL timestamptz
         novo.Inicio = DateTime.SpecifyKind(novo.Inicio, DateTimeKind.Utc);
         novo.Fim = DateTime.SpecifyKind(novo.Fim, DateTimeKind.Utc);
 
-        // Validação básica de horário
         if (novo.Inicio >= novo.Fim)
             return (false, "A hora de início deve ser anterior à hora de fim.");
 
         if (novo.Inicio < DateTime.UtcNow)
             return (false, "Não é possível agendar reuniões no passado.");
 
-        // Verificação de conflitos
-        // Lógica: (InícioA < FimB) E (FimA > InícioB)
+        // Lógica de sobreposição: (InícioA < FimB) E (FimA > InícioB)
         var conflito = await context.Agendamentos
             .AnyAsync(a => a.SalaId == novo.SalaId && 
                            a.Inicio < novo.Fim && 
@@ -61,9 +70,6 @@ public class AgendamentoService(AppDbContext context)
         }
     }
 
-    /// <summary>
-    /// Remove um agendamento existente.
-    /// </summary>
     public async Task<bool> CancelarAgendamentoAsync(Guid agendamentoId)
     {
         var agendamento = await context.Agendamentos.FindAsync(agendamentoId);
