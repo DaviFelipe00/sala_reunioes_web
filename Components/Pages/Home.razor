@@ -1,19 +1,72 @@
 ﻿@page "/"
-@inject AgendamentoService AgendamentoService
+@using SalaReunioes.Web.Domain.Entities
+@inject AgendamentoService Service
+@inject IDialogService DialogService
 
-<MudText Typo="Typo.h4" Class="mb-6">Dashboard de Salas</MudText>
+<MudText Typo="Typo.h4" Class="mb-2" Style="font-weight: 300;">Bem-vindo,</MudText>
+<MudText Typo="Typo.h3" Class="mb-8" Style="font-weight: 700;">Painel de Salas</MudText>
 
 @if (salas == null)
 {
-    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+    <MudStack AlignItems="AlignItems.Center" Justify="Justify.Center" Class="mt-12">
+        <MudProgressCircular Color="Color.Info" Indeterminate="true" Size="Size.Large" />
+        <MudText Class="mt-4">Carregando ambiente...</MudText>
+    </MudStack>
 }
 else
 {
-    <MudGrid>
+    <MudGrid Spacing="4">
         @foreach (var sala in salas)
         {
             <MudItem xs="12" sm="6" md="4">
-                <SalaCard Sala="sala" />
+                <MudCard Elevation="0" Class="glass-panel rounded-xl pa-3 mb-4" Style="transition: transform 0.3s;">
+                    <MudCardHeader>
+                        <CardHeaderAvatar>
+                             <MudAvatar Color="Color.Info" Variant="Variant.Filled" Class="glass-panel" Style="background-color: rgba(33, 150, 243, 0.3) !important;">
+                                 <MudIcon Icon="@Icons.Material.Filled.MeetingRoom" />
+                             </MudAvatar>
+                        </CardHeaderAvatar>
+                        <CardHeaderContent>
+                            <MudText Typo="Typo.h5" Style="font-weight: 600;">@sala.Nome</MudText>
+                            <MudText Typo="Typo.caption" Style="opacity: 0.8;">Capacidade: @sala.Capacidade pessoas</MudText>
+                        </CardHeaderContent>
+                        <CardHeaderActions>
+                            @if(sala.Agendamentos.Any()) {
+                                <MudChip T="string" Size="Size.Small" Color="Color.Warning" Class="glass-panel" Style="background-color: rgba(255, 152, 0, 0.3) !important; color: white !important;">Ocupada Hoje</MudChip>
+                            } else {
+                                <MudChip T="string" Size="Size.Small" Color="Color.Success" Class="glass-panel" Style="background-color: rgba(76, 175, 80, 0.3) !important; color: white !important;">Livre</MudChip>
+                            }
+                        </CardHeaderActions>
+                    </MudCardHeader>
+
+                    <MudCardContent Style="height: 180px; overflow-y: auto;" Class="px-4">
+                        @if (!sala.Agendamentos.Any())
+                        {
+                             <MudStack AlignItems="AlignItems.Center" Justify="Justify.Center" Class="h-100" Style="opacity: 0.6;">
+                                 <MudIcon Icon="@Icons.Material.Outlined.EventAvailable" Size="Size.Large" />
+                                 <MudText Typo="Typo.body2">Disponível o dia todo</MudText>
+                             </MudStack>
+                        }
+                        else
+                        {
+                            <MudText Typo="Typo.subtitle2" Class="mb-2" Style="opacity: 0.8;">Agenda de Hoje:</MudText>
+                            @foreach (var agenda in sala.Agendamentos.OrderBy(a => a.Inicio))
+                            {
+                                <div class="d-flex flex-row align-center pa-2 mb-2 rounded" style="background: rgba(255,255,255,0.1); border-left: 3px solid #2196f3;">
+                                     <MudText Typo="Typo.body2" Style="font-weight: 700; min-width: 50px;">@agenda.Inicio.ToLocalTime().ToString("HH:mm")</MudText>
+                                     <MudText Typo="Typo.body2" Class="ml-3 text-truncate">@agenda.Titulo</MudText>
+                                </div>
+                            }
+                        }
+                    </MudCardContent>
+                    <MudCardActions Class="pt-4">
+                        <MudButton Variant="Variant.Filled" Color="Color.Info" FullWidth="true" Class="rounded-lg py-2"
+                                   Style="background-color: rgba(33, 150, 243, 0.7); backdrop-filter: blur(5px);"
+                                   OnClick="@((e) => AbrirReserva(sala.Id, sala.Nome))">
+                            Reservar Sala
+                        </MudButton>
+                    </MudCardActions>
+                </MudCard>
             </MudItem>
         }
     </MudGrid>
@@ -24,7 +77,34 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        // Carrega as salas e agendamentos via serviço
-        salas = await AgendamentoService.ListarSalasComAgendamentosAsync();
+        // Simula um pequeno delay para ver o efeito de loading
+        await Task.Delay(500);
+        await CarregarDados();
     }
+
+    private async Task CarregarDados()
+    {
+        salas = await Service.ListarSalasComAgendamentosAsync();
+    }
+
+   private async Task AbrirReserva(Guid salaId, string nome)
+{
+    var options = new DialogOptions { 
+        MaxWidth = MaxWidth.Small, 
+        FullWidth = true, 
+        CloseButton = true,
+    };
+
+    var parameters = new DialogParameters { ["SalaId"] = salaId, ["SalaNome"] = nome };
+    var dialog = await DialogService.ShowAsync<ReservaDialog>($"Reservar {nome}", parameters, options);
+    var result = await dialog.Result;
+
+    // CORRIGIDO: Adicionado check de nulidade para evitar o aviso CS8602
+    if (result != null && !result.Canceled)
+    {
+        salas = null; 
+        StateHasChanged();
+        await CarregarDados();
+    }
+}
 }

@@ -117,7 +117,6 @@ C:\Users\DaviBarbosa\Dev\SalaReunioes.Web\obj\Debug\net10.0\scopedcss\bundle\Sal
 C:\Users\DaviBarbosa\Dev\SalaReunioes.Web\obj\Debug\net10.0\scopedcss\projectbundle\SalaReunioes.Web.bundle.scp.css
 C:\Users\DaviBarbosa\Dev\SalaReunioes.Web\obj\Debug\net10.0\compressed\tzxjg6is5z-{0}-7c7lhmh1j6-7c7lhmh1j6.gz
 C:\Users\DaviBarbosa\Dev\SalaReunioes.Web\obj\Debug\net10.0\compressed\0wz98yz2xy-{0}-f96y5mhlyw-f96y5mhlyw.gz
-C:\Users\DaviBarbosa\Dev\SalaReunioes.Web\obj\Debug\net10.0\compressed\ql64mdht7c-{0}-khy4lop6wu-khy4lop6wu.gz
 C:\Users\DaviBarbosa\Dev\SalaReunioes.Web\obj\Debug\net10.0\compressed\b8a02tox70-{0}-bqjiyaj88i-bqjiyaj88i.gz
 C:\Users\DaviBarbosa\Dev\SalaReunioes.Web\obj\Debug\net10.0\compressed\6s8djjlrq6-{0}-c2jlpeoesf-c2jlpeoesf.gz
 C:\Users\DaviBarbosa\Dev\SalaReunioes.Web\obj\Debug\net10.0\compressed\orhwfcyd6v-{0}-erw9l3u2r3-erw9l3u2r3.gz
@@ -178,3 +177,4 @@ C:\Users\DaviBarbosa\Dev\SalaReunioes.Web\obj\Debug\net10.0\refint\SalaReunioes.
 C:\Users\DaviBarbosa\Dev\SalaReunioes.Web\obj\Debug\net10.0\SalaReunioes.Web.pdb
 C:\Users\DaviBarbosa\Dev\SalaReunioes.Web\obj\Debug\net10.0\SalaReunioes.Web.genruntimeconfig.cache
 C:\Users\DaviBarbosa\Dev\SalaReunioes.Web\obj\Debug\net10.0\ref\SalaReunioes.Web.dll
+C:\Users\DaviBarbosa\Dev\SalaReunioes.Web\obj\Debug\net10.0\compressed\ql64mdht7c-{0}-ijk3l9exik-ijk3l9exik.gz

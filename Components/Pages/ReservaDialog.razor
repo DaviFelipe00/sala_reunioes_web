@@ -1,0 +1,57 @@
+@using SalaReunioes.Web.Domain.Entities
+@inject AgendamentoService AgendamentoService
+@inject ISnackbar Snackbar
+
+<MudDialog Class="glass-panel" Style="background: rgba(20, 25, 35, 0.9); backdrop-filter: blur(20px);">
+    <TitleContent>
+        <MudText Typo="Typo.h6" Style="color: white;">Reservar @SalaNome</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudStack Spacing="4">
+            <MudTextField @bind-Value="novoAgendamento.Titulo" Label="Título da Reunião" Variant="Variant.Outlined" Required="true" />
+            <MudTextField @bind-Value="novoAgendamento.Responsavel" Label="Responsável" Variant="Variant.Outlined" Required="true" />
+            <MudDatePicker Label="Data da Reunião" @bind-Date="dataSelecionada" Variant="Variant.Outlined" Color="Color.Info" />
+            <MudStack Row="true">
+                <MudTimePicker Label="Hora Início" @bind-Time="horaInicio" Variant="Variant.Outlined" Color="Color.Info" />
+                <MudTimePicker Label="Hora Fim" @bind-Time="horaFim" Variant="Variant.Outlined" Color="Color.Info" />
+            </MudStack>
+        </MudStack>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Variant="Variant.Text" Style="color: rgba(255,255,255,0.7);">Cancelar</MudButton>
+        <MudButton Color="Color.Info" Variant="Variant.Filled" OnClick="Submit" Class="rounded-pill px-8">Confirmar</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public Guid SalaId { get; set; }
+    [Parameter] public string SalaNome { get; set; } = "";
+
+    private Agendamento novoAgendamento = new();
+    private DateTime? dataSelecionada = DateTime.Today;
+    private TimeSpan? horaInicio = new TimeSpan(DateTime.Now.Hour + 1, 0, 0);
+    private TimeSpan? horaFim = new TimeSpan(DateTime.Now.Hour + 2, 0, 0);
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task Submit()
+    {
+        if (dataSelecionada.HasValue && horaInicio.HasValue && horaFim.HasValue)
+        {
+            novoAgendamento.SalaId = SalaId;
+            // Combina data e hora e garante que sejam tratadas como UTC para o banco
+            novoAgendamento.Inicio = dataSelecionada.Value.Add(horaInicio.Value);
+            novoAgendamento.Fim = dataSelecionada.Value.Add(horaFim.Value);
+
+            var (sucesso, mensagem) = await AgendamentoService.ReservarAsync(novoAgendamento);
+            
+            if (sucesso) {
+                Snackbar.Add(mensagem, Severity.Success);
+                MudDialog.Close(DialogResult.Ok(true));
+            } else {
+                Snackbar.Add(mensagem, Severity.Error);
+            }
+        }
+    }
+}
