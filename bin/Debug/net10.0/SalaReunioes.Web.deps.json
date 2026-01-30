@@ -8,6 +8,8 @@
     ".NETCoreApp,Version=v10.0": {
       "SalaReunioes.Web/1.0.0": {
         "dependencies": {
+          "Heron.MudCalendar": "3.4.0",
+          "Microsoft.AspNetCore.SignalR.Client": "10.0.2",
           "Microsoft.EntityFrameworkCore.Design": "10.0.2",
           "MudBlazor": "8.15.0",
           "Npgsql.EntityFrameworkCore.PostgreSQL": "10.0.0"
@@ -16,11 +18,142 @@
           "SalaReunioes.Web.dll": {}
         }
       },
+      "Heron.MudCalendar/3.4.0": {
+        "dependencies": {
+          "MudBlazor": "8.15.0"
+        },
+        "runtime": {
+          "lib/net9.0/Heron.MudCalendar.dll": {
+            "assemblyVersion": "3.4.0.0",
+            "fileVersion": "3.4.0.0"
+          }
+        },
+        "resources": {
+          "lib/net9.0/bg/Heron.MudCalendar.resources.dll": {
+            "locale": "bg"
+          },
+          "lib/net9.0/cs/Heron.MudCalendar.resources.dll": {
+            "locale": "cs"
+          },
+          "lib/net9.0/da/Heron.MudCalendar.resources.dll": {
+            "locale": "da"
+          },
+          "lib/net9.0/de/Heron.MudCalendar.resources.dll": {
+            "locale": "de"
+          },
+          "lib/net9.0/el/Heron.MudCalendar.resources.dll": {
+            "locale": "el"
+          },
+          "lib/net9.0/es/Heron.MudCalendar.resources.dll": {
+            "locale": "es"
+          },
+          "lib/net9.0/et/Heron.MudCalendar.resources.dll": {
+            "locale": "et"
+          },
+          "lib/net9.0/fa/Heron.MudCalendar.resources.dll": {
+            "locale": "fa"
+          },
+          "lib/net9.0/fi/Heron.MudCalendar.resources.dll": {
+            "locale": "fi"
+          },
+          "lib/net9.0/fr/Heron.MudCalendar.resources.dll": {
+            "locale": "fr"
+          },
+          "lib/net9.0/hr/Heron.MudCalendar.resources.dll": {
+            "locale": "hr"
+          },
+          "lib/net9.0/hu/Heron.MudCalendar.resources.dll": {
+            "locale": "hu"
+          },
+          "lib/net9.0/id/Heron.MudCalendar.resources.dll": {
+            "locale": "id"
+          },
+          "lib/net9.0/it/Heron.MudCalendar.resources.dll": {
+            "locale": "it"
+          },
+          "lib/net9.0/ja/Heron.MudCalendar.resources.dll": {
+            "locale": "ja"
+          },
+          "lib/net9.0/ko/Heron.MudCalendar.resources.dll": {
+            "locale": "ko"
+          },
+          "lib/net9.0/lt/Heron.MudCalendar.resources.dll": {
+            "locale": "lt"
+          },
+          "lib/net9.0/lv/Heron.MudCalendar.resources.dll": {
+            "locale": "lv"
+          },
+          "lib/net9.0/nb/Heron.MudCalendar.resources.dll": {
+            "locale": "nb"
+          },
+          "lib/net9.0/nl/Heron.MudCalendar.resources.dll": {
+            "locale": "nl"
+          },
+          "lib/net9.0/pl/Heron.MudCalendar.resources.dll": {
+            "locale": "pl"
+          },
+          "lib/net9.0/pt/Heron.MudCalendar.resources.dll": {
+            "locale": "pt"
+          },
+          "lib/net9.0/ro/Heron.MudCalendar.resources.dll": {
+            "locale": "ro"
+          },
+          "lib/net9.0/ru/Heron.MudCalendar.resources.dll": {
+            "locale": "ru"
+          },
+          "lib/net9.0/sk/Heron.MudCalendar.resources.dll": {
+            "locale": "sk"
+          },
+          "lib/net9.0/sl/Heron.MudCalendar.resources.dll": {
+            "locale": "sl"
+          },
+          "lib/net9.0/sv/Heron.MudCalendar.resources.dll": {
+            "locale": "sv"
+          },
+          "lib/net9.0/tr/Heron.MudCalendar.resources.dll": {
+            "locale": "tr"
+          },
+          "lib/net9.0/uk/Heron.MudCalendar.resources.dll": {
+            "locale": "uk"
+          },
+          "lib/net9.0/zh/Heron.MudCalendar.resources.dll": {
+            "locale": "zh"
+          }
+        }
+      },
       "Humanizer.Core/2.14.1": {
         "runtime": {
           "lib/net6.0/Humanizer.dll": {
             "assemblyVersion": "2.14.0.0",
             "fileVersion": "2.14.1.48190"
+          }
+        }
+      },
+      "Microsoft.AspNetCore.Http.Connections.Client/10.0.2": {
+        "runtime": {
+          "lib/net10.0/Microsoft.AspNetCore.Http.Connections.Client.dll": {
+            "assemblyVersion": "10.0.2.0",
+            "fileVersion": "10.0.225.61305"
+          }
+        }
+      },
+      "Microsoft.AspNetCore.SignalR.Client/10.0.2": {
+        "dependencies": {
+          "Microsoft.AspNetCore.Http.Connections.Client": "10.0.2",
+          "Microsoft.AspNetCore.SignalR.Client.Core": "10.0.2"
+        },
+        "runtime": {
+          "lib/net10.0/Microsoft.AspNetCore.SignalR.Client.dll": {
+            "assemblyVersion": "10.0.2.0",
+            "fileVersion": "10.0.225.61305"
+          }
+        }
+      },
+      "Microsoft.AspNetCore.SignalR.Client.Core/10.0.2": {
+        "runtime": {
+          "lib/net10.0/Microsoft.AspNetCore.SignalR.Client.Core.dll": {
+            "assemblyVersion": "10.0.2.0",
+            "fileVersion": "10.0.225.61305"
           }
         }
       },
@@ -493,12 +626,40 @@
       "serviceable": false,
       "sha512": ""
     },
+    "Heron.MudCalendar/3.4.0": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-bNwMyg0nnTul6RgQPie7gg5kdrQJ8Trp8GBAaYM/FHW8qra4joZ/mxtv7/m1yZxZV+rgIy+7B4TZEnFc2FTOAQ==",
+      "path": "heron.mudcalendar/3.4.0",
+      "hashPath": "heron.mudcalendar.3.4.0.nupkg.sha512"
+    },
     "Humanizer.Core/2.14.1": {
       "type": "package",
       "serviceable": true,
       "sha512": "sha512-lQKvtaTDOXnoVJ20ibTuSIOf2i0uO0MPbDhd1jm238I+U/2ZnRENj0cktKZhtchBMtCUSRQ5v4xBCUbKNmyVMw==",
       "path": "humanizer.core/2.14.1",
       "hashPath": "humanizer.core.2.14.1.nupkg.sha512"
+    },
+    "Microsoft.AspNetCore.Http.Connections.Client/10.0.2": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-NL1voLwPkiCYnZQkmKVZx/6E9PZJ48gyI/l/Ij/CbULWMPLjK+35SQsIuaT7aGjGcqEgpbZnFAATe4duvWV/Uw==",
+      "path": "microsoft.aspnetcore.http.connections.client/10.0.2",
+      "hashPath": "microsoft.aspnetcore.http.connections.client.10.0.2.nupkg.sha512"
+    },
+    "Microsoft.AspNetCore.SignalR.Client/10.0.2": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-cvvmhCKkhM1+mupNIjAi6RVzpb6ep2/jORKIYY9Mg2LVauFpAWM4PCircJbhLPC+2Pyi3tCPyaqwSGnnZUMQ3g==",
+      "path": "microsoft.aspnetcore.signalr.client/10.0.2",
+      "hashPath": "microsoft.aspnetcore.signalr.client.10.0.2.nupkg.sha512"
+    },
+    "Microsoft.AspNetCore.SignalR.Client.Core/10.0.2": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-hO7XvX8WQXpF98zyeyzDftXMlAWe7uqA3cGj4ugso8cV5ixQ8FURUf0R4Olm0AQV17gXrWVDlstQWBXyZWJavQ==",
+      "path": "microsoft.aspnetcore.signalr.client.core/10.0.2",
+      "hashPath": "microsoft.aspnetcore.signalr.client.core.10.0.2.nupkg.sha512"
     },
     "Microsoft.Build.Framework/18.0.2": {
       "type": "package",

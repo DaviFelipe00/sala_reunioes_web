@@ -1,52 +1,99 @@
 @page "/calendario"
+@using Microsoft.AspNetCore.SignalR.Client
+@using Heron.MudCalendar
 @using SalaReunioes.Web.Domain.Entities
 @using SalaReunioes.Web.Infrastructure.Services
+@implements IAsyncDisposable
 @inject AgendamentoService Service
+@inject NavigationManager Navigation
 
 <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-8">
-    <MudText Typo="Typo.h4" Color="Color.Primary" Class="fw-bold mb-6">Calendário de Reuniões</MudText>
+    <div class="d-flex align-center justify-space-between mb-6">
+        <div>
+            <MudText Typo="Typo.h4" Color="Color.Primary" Class="fw-bold">Agenda Corporativa</MudText>
+            <MudText Typo="Typo.subtitle1" Style="color: var(--mud-palette-text-secondary)">
+                Visualize a ocupação de todas as salas da Rio Ave em tempo real.
+            </MudText>
+        </div>
+        <MudChip T="string" Icon="@Icons.Material.Filled.CloudSync" Color="Color.Success" Variant="Variant.Text" Class="fw-bold">
+            Sincronizado
+        </MudChip>
+    </div>
 
     <MudPaper Class="pa-4 rounded-lg shadow-sm">
-        <MudDatePicker Label="Filtrar por Data" @bind-Date="dataFiltro" PickerVariant="PickerVariant.Static" Color="Color.Primary" />
-        
-        <MudText Typo="Typo.h6" Class="mt-6 mb-4">Reuniões em @dataFiltro?.ToString("dd/MM/yyyy")</MudText>
-        
-        @if (agendamentosDoDia == null || !agendamentosDoDia.Any())
-        {
-            <MudAlert Severity="Severity.Normal">Nenhum compromisso para este dia.</MudAlert>
-        }
-        else
-        {
-            <MudTable Items="@agendamentosDoDia" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="0">
-                <HeaderContent>
-                    <MudTh>Hora</MudTh>
-                    <MudTh>Sala</MudTh>
-                    <MudTh>Título</MudTh>
-                    <MudTh>Responsável</MudTh>
-                </HeaderContent>
-                <RowTemplate>
-                    <MudTd DataLabel="Hora">@context.Inicio.ToLocalTime().ToString("HH:mm") - @context.Fim.ToLocalTime().ToString("HH:mm")</MudTd>
-                    @* Nota: Precisaríamos carregar o nome da sala no serviço para exibir aqui *@
-                    <MudTd DataLabel="Sala">Sala Selecionada</MudTd>
-                    <MudTd DataLabel="Título">@context.Titulo</MudTd>
-                    <MudTd DataLabel="Responsável">@context.Responsavel</MudTd>
-                </RowTemplate>
-            </MudTable>
-        }
+        @* COMPONENTE DE CALENDÁRIO INTERATIVO *@
+        <MudCalendar Items="_events" 
+                     Color="Color.Primary"
+                     MonthClick="HandleDateClick"
+                     Class="rioave-calendar"
+                     Style="height: 750px;">
+        </MudCalendar>
     </MudPaper>
 </MudContainer>
 
-@code {
-    private DateTime? dataFiltro = DateTime.Today;
-    private List<Agendamento> agendamentosDoDia = new();
+<style>
+    /* Customização visual para alinhar com a Rio Ave */
+    .rioave-calendar .mud-calendar-item {
+        border-radius: 6px;
+        font-weight: 500;
+        border-left: 4px solid var(--mud-palette-primary) !important;
+        background-color: var(--mud-palette-background-grey) !important;
+        color: var(--mud-palette-text-primary) !important;
+    }
+</style>
 
-    // Lógica simples para exemplo; em um sistema real, o serviço filtraria por data
+@code {
+    private List<CalendarItem> _events = new();
+    private HubConnection? hubConnection;
+
     protected override async Task OnInitializedAsync()
     {
-        var salas = await Service.ListarSalasComAgendamentosAsync();
-        agendamentosDoDia = salas.SelectMany(s => s.Agendamentos)
-                                .Where(a => a.Inicio.Date == dataFiltro?.Date)
-                                .OrderBy(a => a.Inicio)
-                                .ToList();
+        await CarregarEventos();
+
+        // 1. CONFIGURAÇÃO SIGNALR: Cria a conexão com o servidor
+        hubConnection = new HubConnectionBuilder()
+            .WithUrl(Navigation.ToAbsoluteUri("/agendamentoHub"))
+            .WithAutomaticReconnect()
+            .Build();
+
+        // 2. ESCUTA ATUALIZAÇÕES: Atualiza o calendário instantaneamente quando houver novas reservas
+        hubConnection.On("ReceberAtualizacao", async () =>
+        {
+            await CarregarEventos();
+            await InvokeAsync(StateHasChanged);
+        });
+
+        await hubConnection.StartAsync();
+    }
+
+    private async Task CarregarEventos()
+    {
+        // Busca agendamentos de um período amplo para exibição no calendário
+        var inicio = DateTime.Today.AddMonths(-1);
+        var fim = DateTime.Today.AddMonths(2);
+        
+        var agendamentos = await Service.ObterAgendamentosPorPeriodoAsync(inicio, fim);
+
+        // Mapeia os dados do banco para o formato esperado pelo Heron.MudCalendar
+        _events = agendamentos.Select(a => new CalendarItem
+        {
+            Start = a.Inicio.ToLocalTime(),
+            End = a.Fim.ToLocalTime(),
+            Text = $"{a.Titulo} ({a.Responsavel})",
+        }).ToList();
+    }
+
+    private void HandleDateClick(DateTime date)
+    {
+        // Espaço para futuras implementações (ex: abrir reserva direto no calendário)
+    }
+
+    // 3. LIBERAÇÃO DE RECURSOS: Garante que a conexão SignalR seja fechada ao sair da página
+    public async ValueTask DisposeAsync()
+    {
+        if (hubConnection is not null)
+        {
+            await hubConnection.DisposeAsync();
+        }
     }
 }

@@ -1,16 +1,20 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.SignalR;
 using SalaReunioes.Web.Domain.Entities;
 using SalaReunioes.Web.Infrastructure.Data;
+using SalaReunioes.Web.Infrastructure.Hubs;
 
 namespace SalaReunioes.Web.Infrastructure.Services;
 
-public class AgendamentoService(AppDbContext context)
+public class AgendamentoService(AppDbContext context, IHubContext<AgendamentoHub> hubContext)
 {
     /// <summary>
-    /// Lista todas as salas com reuniões de hoje em diante (Ideal para o Dashboard).
+    /// Lista todas as salas com reuniões de hoje em diante.
+    /// Ideal para o Dashboard principal.
     /// </summary>
     public async Task<List<Sala>> ListarSalasComAgendamentosAsync()
     {
+        // Define o início do dia atual em UTC para comparação no Postgres
         var hojeUtc = DateTime.SpecifyKind(DateTime.UtcNow.Date, DateTimeKind.Utc);
 
         return await context.Salas
@@ -21,7 +25,8 @@ public class AgendamentoService(AppDbContext context)
     }
 
     /// <summary>
-    /// Busca todos os agendamentos num intervalo específico (Essencial para o Calendário).
+    /// Busca todos os agendamentos em um intervalo de datas.
+    /// Essencial para o funcionamento do componente de Calendário.
     /// </summary>
     public async Task<List<Agendamento>> ObterAgendamentosPorPeriodoAsync(DateTime inicio, DateTime fim)
     {
@@ -35,11 +40,11 @@ public class AgendamentoService(AppDbContext context)
     }
 
     /// <summary>
-    /// Realiza um novo agendamento validando conflitos e forçando UTC.
+    /// Realiza um novo agendamento com validação de conflitos e notificação em tempo real.
     /// </summary>
     public async Task<(bool Sucesso, string Mensagem)> ReservarAsync(Agendamento novo)
     {
-        // Garante Kind Utc para compatibilidade com PostgreSQL timestamptz
+        // Garante Kind Utc para evitar erros binários no timestamptz do Postgres
         novo.Inicio = DateTime.SpecifyKind(novo.Inicio, DateTimeKind.Utc);
         novo.Fim = DateTime.SpecifyKind(novo.Fim, DateTimeKind.Utc);
 
@@ -49,7 +54,7 @@ public class AgendamentoService(AppDbContext context)
         if (novo.Inicio < DateTime.UtcNow)
             return (false, "Não é possível agendar reuniões no passado.");
 
-        // Lógica de sobreposição: (InícioA < FimB) E (FimA > InícioB)
+        // Verificação de sobreposição: (InícioA < FimB) E (FimA > InícioB)
         var conflito = await context.Agendamentos
             .AnyAsync(a => a.SalaId == novo.SalaId && 
                            a.Inicio < novo.Fim && 
@@ -62,6 +67,10 @@ public class AgendamentoService(AppDbContext context)
         {
             context.Agendamentos.Add(novo);
             await context.SaveChangesAsync();
+
+            // PONTO CHAVE: Notifica todos os clientes conectados via SignalR
+            await hubContext.Clients.All.SendAsync("ReceberAtualizacao");
+
             return (true, "Agendamento realizado com sucesso!");
         }
         catch (Exception)
@@ -70,6 +79,9 @@ public class AgendamentoService(AppDbContext context)
         }
     }
 
+    /// <summary>
+    /// Remove um agendamento e atualiza todos os dashboards em tempo real.
+    /// </summary>
     public async Task<bool> CancelarAgendamentoAsync(Guid agendamentoId)
     {
         var agendamento = await context.Agendamentos.FindAsync(agendamentoId);
@@ -77,6 +89,10 @@ public class AgendamentoService(AppDbContext context)
 
         context.Agendamentos.Remove(agendamento);
         await context.SaveChangesAsync();
+
+        // Notifica a remoção para que as salas fiquem "Livre" instantaneamente na UI
+        await hubContext.Clients.All.SendAsync("ReceberAtualizacao");
+
         return true;
     }
 }
