@@ -177,7 +177,6 @@ C:\Users\DaviBarbosa\Dev\SalaReunioes.Web\obj\Debug\net10.0\refint\SalaReunioes.
 C:\Users\DaviBarbosa\Dev\SalaReunioes.Web\obj\Debug\net10.0\SalaReunioes.Web.pdb
 C:\Users\DaviBarbosa\Dev\SalaReunioes.Web\obj\Debug\net10.0\SalaReunioes.Web.genruntimeconfig.cache
 C:\Users\DaviBarbosa\Dev\SalaReunioes.Web\obj\Debug\net10.0\ref\SalaReunioes.Web.dll
-C:\Users\DaviBarbosa\Dev\SalaReunioes.Web\obj\Debug\net10.0\compressed\ql64mdht7c-{0}-atn3j4e0h2-atn3j4e0h2.gz
 C:\Users\DaviBarbosa\Dev\SalaReunioes.Web\bin\Debug\net10.0\Heron.MudCalendar.dll
 C:\Users\DaviBarbosa\Dev\SalaReunioes.Web\bin\Debug\net10.0\Microsoft.AspNetCore.Http.Connections.Client.dll
 C:\Users\DaviBarbosa\Dev\SalaReunioes.Web\bin\Debug\net10.0\Microsoft.AspNetCore.SignalR.Client.dll
@@ -214,3 +213,4 @@ C:\Users\DaviBarbosa\Dev\SalaReunioes.Web\bin\Debug\net10.0\uk\Heron.MudCalendar
 C:\Users\DaviBarbosa\Dev\SalaReunioes.Web\bin\Debug\net10.0\zh\Heron.MudCalendar.resources.dll
 C:\Users\DaviBarbosa\Dev\SalaReunioes.Web\obj\Debug\net10.0\compressed\eopr0x3mwt-{0}-3wy6eb7tt2-3wy6eb7tt2.gz
 C:\Users\DaviBarbosa\Dev\SalaReunioes.Web\obj\Debug\net10.0\compressed\jjtd6l0pqq-{0}-qn7y6fntrq-qn7y6fntrq.gz
+C:\Users\DaviBarbosa\Dev\SalaReunioes.Web\obj\Debug\net10.0\compressed\ql64mdht7c-{0}-3a77greg4r-3a77greg4r.gz

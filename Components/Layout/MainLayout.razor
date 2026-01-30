@@ -2,31 +2,54 @@
 
 <MudThemeProvider Theme="_rioAveTheme" />
 <MudPopoverProvider />
-@* CORREÇÃO: Removido BackdropClass daqui *@
 <MudDialogProvider FullWidth="true" MaxWidth="MaxWidth.Small" CloseButton="true" />
 <MudSnackbarProvider />
 
 <MudLayout>
-    <MudAppBar Elevation="1" Color="Color.Surface" Fixed="true" Class="border-b">
-        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@((e) => DrawerToggle())" Class="mr-4 d-md-none" />
+    @* BARRA SUPERIOR COM EFEITO DE TRANSPARÊNCIA (GLASSMORPISM) *@
+    <MudAppBar Elevation="0" Class="glass-effect" Fixed="true">
+        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Primary" Edge="Edge.Start" OnClick="@((e) => DrawerToggle())" Class="mr-4 d-md-none" />
         
-        <MudImage Src="rioave.png" Height="35" Alt="Rio Ave" Class="mr-3" />
+        @* Logo Rio Ave - Único elemento no topo para um visual clean *@
+        <MudImage Src="rioave.png" Height="32" Alt="Rio Ave" Class="mr-3" />
         
-        <MudText Typo="Typo.h6" Color="Color.Primary" Style="font-weight: 800;">GESTÃO DE SALAS</MudText>
         <MudSpacer />
-        <MudIconButton Icon="@Icons.Material.Outlined.Notifications" Color="Color.Default" />
-        <MudIconButton Icon="@Icons.Material.Outlined.AccountCircle" Color="Color.Default" />
+        
+        <div class="d-flex align-center">
+            <MudTooltip Text="Notificações">
+                <MudIconButton Icon="@Icons.Material.Outlined.Notifications" Color="Color.Primary" />
+            </MudTooltip>
+            <MudAvatar Color="Color.Primary" Variant="Variant.Filled" Class="ml-2" Style="width:35px; height:35px; cursor:pointer;">D</MudAvatar>
+        </div>
     </MudAppBar>
 
-    <MudDrawer @bind-Open="_drawerOpen" ClipMode="DrawerClipMode.Always" Elevation="2" Variant="@DrawerVariant.Responsive" Class="rioave-sidebar">
-        <MudNavMenu Class="pt-4">
-             <MudNavLink Href="/" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Dashboard">Dashboard</MudNavLink>
-             <MudNavLink Href="/calendario" Icon="@Icons.Material.Filled.CalendarMonth">Calendário</MudNavLink>
+    @* MENU LATERAL COM TRANSPARÊNCIA ESCURA *@
+    <MudDrawer @bind-Open="_drawerOpen" 
+               ClipMode="DrawerClipMode.Always" 
+               Elevation="0" 
+               Variant="@DrawerVariant.Responsive" 
+               Class="rioave-sidebar-glass">
+        
+        <MudNavMenu Class="mt-4">
+             <MudText Typo="Typo.overline" Class="px-4 mb-2" Style="color: rgba(255,255,255,0.5)">Navegação</MudText>
+             
+             <MudNavLink Href="/" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Dashboard" IconColor="Color.Inherit">Agendamentos</MudNavLink>
+             <MudNavLink Href="/calendario" Icon="@Icons.Material.Filled.CalendarMonth" IconColor="Color.Inherit">Calendário</MudNavLink>
+             
+             <MudText Typo="Typo.overline" Class="px-4 mt-6 mb-2" Style="color: rgba(255,255,255,0.5)">Configurações</MudText>
+             <MudNavLink Href="/perfil" Icon="@Icons.Material.Filled.Person" IconColor="Color.Inherit">Meu Perfil</MudNavLink>
         </MudNavMenu>
+        
+        <MudSpacer />
+        
+        <div class="pa-4">
+            <MudText Typo="Typo.caption" Style="color: rgba(255,255,255,0.3)">Rio Ave Corporate v1.0</MudText>
+        </div>
     </MudDrawer>
 
+    @* ÁREA DE CONTEÚDO PRINCIPAL *@
     <MudMainContent Class="pt-16 px-4">
-        <MudContainer MaxWidth="MaxWidth.ExtraLarge">
+        <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
             @Body
         </MudContainer>
     </MudMainContent>
@@ -40,16 +63,20 @@
     {
         PaletteLight = new PaletteLight()
         {
-            Primary = "#003B5C", // Azul Rio Ave
+            Primary = "#003B5C",
             Secondary = "#007ACC",
-            AppbarBackground = "#FFFFFF",
-            Background = "#F4F7F9",
-            Surface = "#FFFFFF",
-            TextPrimary = "#1A2C38",
-            TextSecondary = "#546E7A", // Aqui no tema está correto
+            // CORREÇÃO: Usamos um Hex válido aqui. 
+            // O CSS (.glass-effect) cuidará da transparência real usando !important.
+            AppbarBackground = "#FFFFFF", 
             DrawerBackground = "#003B5C",
-            DrawerText = "#FFFFFF",
-            DrawerIcon = "#FFFFFF"
+            TextPrimary = "#1A2C38",
+            Surface = "#FFFFFF",
+            Background = "#F0F2F5"
+        },
+        LayoutProperties = new LayoutProperties()
+        {
+            DefaultBorderRadius = "12px",
+            DrawerWidthLeft = "260px"
         }
     };
 }

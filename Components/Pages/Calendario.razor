@@ -3,97 +3,65 @@
 @using Heron.MudCalendar
 @using SalaReunioes.Web.Domain.Entities
 @using SalaReunioes.Web.Infrastructure.Services
-@implements IAsyncDisposable
 @inject AgendamentoService Service
-@inject NavigationManager Navigation
 
-<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-8">
-    <div class="d-flex align-center justify-space-between mb-6">
-        <div>
-            <MudText Typo="Typo.h4" Color="Color.Primary" Class="fw-bold">Agenda Corporativa</MudText>
-            <MudText Typo="Typo.subtitle1" Style="color: var(--mud-palette-text-secondary)">
-                Visualize a ocupação de todas as salas da Rio Ave em tempo real.
-            </MudText>
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-6">
+    <div class="d-flex align-center justify-space-between mb-4">
+        <MudText Typo="Typo.h4" Color="Color.Primary" Class="fw-bold">Calendário Rio Ave</MudText>
+        
+        <div style="width: 250px;">
+            <MudSelect T="Guid?" Label="Filtrar por Sala" Value="@_salaIdFiltro" ValueChanged="OnSalaFiltroChanged" AnchorOrigin="Origin.BottomCenter">
+                <MudSelectItem T="Guid?" Value="null">Todas as Salas</MudSelectItem>
+                @if (todasSalas != null)
+                {
+                    @foreach (var s in todasSalas)
+                    {
+                        <MudSelectItem T="Guid?" Value="@s.Id">@s.Nome</MudSelectItem>
+                    }
+                }
+            </MudSelect>
         </div>
-        <MudChip T="string" Icon="@Icons.Material.Filled.CloudSync" Color="Color.Success" Variant="Variant.Text" Class="fw-bold">
-            Sincronizado
-        </MudChip>
     </div>
 
     <MudPaper Class="pa-4 rounded-lg shadow-sm">
-        @* COMPONENTE DE CALENDÁRIO INTERATIVO *@
-        <MudCalendar Items="_events" 
-                     Color="Color.Primary"
-                     MonthClick="HandleDateClick"
-                     Class="rioave-calendar"
-                     Style="height: 750px;">
-        </MudCalendar>
+        <MudCalendar Items="_events" Color="Color.Primary" Class="rioave-calendar" Style="height: 700px;"/>
     </MudPaper>
 </MudContainer>
 
-<style>
-    /* Customização visual para alinhar com a Rio Ave */
-    .rioave-calendar .mud-calendar-item {
-        border-radius: 6px;
-        font-weight: 500;
-        border-left: 4px solid var(--mud-palette-primary) !important;
-        background-color: var(--mud-palette-background-grey) !important;
-        color: var(--mud-palette-text-primary) !important;
-    }
-</style>
-
 @code {
     private List<CalendarItem> _events = new();
-    private HubConnection? hubConnection;
+    private List<Sala>? todasSalas;
+    private Guid? _salaIdFiltro;
 
     protected override async Task OnInitializedAsync()
     {
+        todasSalas = await Service.ListarSalasComAgendamentosAsync();
         await CarregarEventos();
+    }
 
-        // 1. CONFIGURAÇÃO SIGNALR: Cria a conexão com o servidor
-        hubConnection = new HubConnectionBuilder()
-            .WithUrl(Navigation.ToAbsoluteUri("/agendamentoHub"))
-            .WithAutomaticReconnect()
-            .Build();
-
-        // 2. ESCUTA ATUALIZAÇÕES: Atualiza o calendário instantaneamente quando houver novas reservas
-        hubConnection.On("ReceberAtualizacao", async () =>
-        {
-            await CarregarEventos();
-            await InvokeAsync(StateHasChanged);
-        });
-
-        await hubConnection.StartAsync();
+    private async Task OnSalaFiltroChanged(Guid? id)
+    {
+        _salaIdFiltro = id;
+        await CarregarEventos();
     }
 
     private async Task CarregarEventos()
     {
-        // Busca agendamentos de um período amplo para exibição no calendário
         var inicio = DateTime.Today.AddMonths(-1);
         var fim = DateTime.Today.AddMonths(2);
-        
         var agendamentos = await Service.ObterAgendamentosPorPeriodoAsync(inicio, fim);
 
-        // Mapeia os dados do banco para o formato esperado pelo Heron.MudCalendar
+        // Aplica o filtro por sala se selecionado
+        if (_salaIdFiltro.HasValue)
+            agendamentos = agendamentos.Where(a => a.SalaId == _salaIdFiltro.Value).ToList();
+
         _events = agendamentos.Select(a => new CalendarItem
         {
             Start = a.Inicio.ToLocalTime(),
             End = a.Fim.ToLocalTime(),
-            Text = $"{a.Titulo} ({a.Responsavel})",
+            Text = $"{a.Titulo} (Sala {salaNome(a.SalaId)})",
         }).ToList();
     }
 
-    private void HandleDateClick(DateTime date)
-    {
-        // Espaço para futuras implementações (ex: abrir reserva direto no calendário)
-    }
-
-    // 3. LIBERAÇÃO DE RECURSOS: Garante que a conexão SignalR seja fechada ao sair da página
-    public async ValueTask DisposeAsync()
-    {
-        if (hubConnection is not null)
-        {
-            await hubConnection.DisposeAsync();
-        }
-    }
+    private string salaNome(Guid id) => todasSalas?.FirstOrDefault(s => s.Id == id)?.Nome ?? "";
 }

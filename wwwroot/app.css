@@ -1,38 +1,102 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+/* wwwroot/app.css */
 
-html, body {
-    font-family: 'Inter', sans-serif !important;
-    background-color: #F4F7F9;
+:root {
+    --rio-ave-blue: #003B5C;
+    --rio-ave-accent: #007ACC;
+    --bg-light: #F8FAFC;
 }
 
-/* Sidebar Corporativo */
-.rioave-sidebar {
-    background-color: #003B5C !important;
+/* Fundo do Planner - Mais limpo */
+.planner-grid {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(220px, 1fr)); /* Fixado em 6 colunas para salas 1-6 */
+    gap: 20px;
+    padding: 10px;
+    overflow-x: auto;
+}
+
+.planner-column {
+    background-color: #EBEDF0; /* Cinza sutil para destacar os cards brancos */
+    border-radius: 16px;
+    padding: 16px;
+    min-height: 650px;
+    display: flex;
+    flex-direction: column;
+    transition: background-color 0.3s ease;
+}
+
+/* Header da Sala - Elegante */
+.sala-header {
+    padding-bottom: 15px;
+    margin-bottom: 15px;
+    border-bottom: 2px solid rgba(0, 59, 92, 0.1);
+    color: var(--rio-ave-blue);
+}
+
+/* CARD DE REUNIÃO - Onde estava o erro de hover */
+.meeting-card {
+    background: #FFFFFF !important;
+    border-radius: 12px;
+    padding: 14px;
+    margin-bottom: 12px;
+    border-left: 5px solid var(--rio-ave-accent);
+    cursor: pointer;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+/* CORREÇÃO DO HOVER: Agora ele ganha elevação e muda levemente a cor */
+.meeting-card:hover {
+    transform: translateY(-4px);
+    background-color: #FDFDFD !important; /* Cor levemente diferente do fundo */
+    box-shadow: 0 12px 20px rgba(0, 59, 92, 0.12); /* Sombra elegante */
+    border-left-color: var(--rio-ave-blue);
+}
+
+/* Estado de reunião agora (Live) */
+.meeting-live {
+    border-left-color: #EF4444; /* Vermelho vivo */
+    background-color: #FEF2F2 !important;
+}
+
+/* Fundo suave para o app para destacar o efeito de transparência */
+body {
+    background-color: #F0F2F5;
+    background-image: radial-gradient(at 0% 0%, rgba(0, 122, 204, 0.05) 0px, transparent 50%), 
+                      radial-gradient(at 100% 0%, rgba(0, 59, 92, 0.05) 0px, transparent 50%);
+    background-attachment: fixed;
+}
+
+/* Classe de Vidro (Glassmorphism) */
+.glass-effect {
+    background-color: rgba(255, 255, 255, 0.45) !important;
+    backdrop-filter: blur(12px) saturate(180%);
+    -webkit-backdrop-filter: blur(12px) saturate(180%);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.3) !important;
+}
+
+/* Menu lateral transparente escuro */
+.rioave-sidebar-glass {
+    background-color: rgba(0, 59, 92, 0.85) !important;
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+    border-right: 1px solid rgba(255, 255, 255, 0.1) !important;
     color: white !important;
 }
 
-/* Ajuste para o efeito de desfoque nos diálogos (Liquid Glass suave) */
-.blur-backdrop {
-    backdrop-filter: blur(8px);
-    background-color: rgba(0, 59, 92, 0.2) !important;
+/* Ajuste nos itens de navegação para elegância */
+.mud-nav-link {
+    border-radius: 8px !important;
+    margin: 4px 8px !important;
+    transition: all 0.2s ease !important;
 }
 
-/* Estilo customizado para os Cards do Dashboard */
-.rioave-card {
-    border-top: 4px solid #003B5C;
-    transition: all 0.3s ease;
+.mud-nav-link:hover {
+    background-color: rgba(255, 255, 255, 0.1) !important;
+    transform: translateX(5px);
 }
 
-.rioave-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important;
-}
-
-.blur-backdrop {
-    backdrop-filter: blur(8px);
-    background-color: rgba(0, 59, 92, 0.2) !important;
-}
-
-.rioave-sidebar {
-    background-color: #003B5C !important;
+.mud-nav-link.active {
+    background-color: rgba(0, 122, 204, 0.4) !important;
+    font-weight: 700 !important;
 }
