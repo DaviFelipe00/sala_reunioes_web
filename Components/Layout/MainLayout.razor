@@ -1,29 +1,55 @@
 ﻿@inherits LayoutComponentBase
 
-<MudThemeProvider />
-<MudDialogProvider MaxWidth="MaxWidth.Small" FullWidth="true" CloseButton="true" />
+<MudThemeProvider Theme="_rioAveTheme" />
+<MudPopoverProvider />
+@* CORREÇÃO: Removido BackdropClass daqui *@
+<MudDialogProvider FullWidth="true" MaxWidth="MaxWidth.Small" CloseButton="true" />
 <MudSnackbarProvider />
 
 <MudLayout>
-    <MudAppBar Elevation="0" Class="glass-panel mt-4 mx-4 mb-0 px-6" Style="border-radius: 20px; width: auto; top: 0; position: sticky; z-index: 100;">
+    <MudAppBar Elevation="1" Color="Color.Surface" Fixed="true" Class="border-b">
+        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@((e) => DrawerToggle())" Class="mr-4 d-md-none" />
         
-        <MudImage Src="rioave.png" Alt="Rio Ave Logo" Height="45" Class="mr-6 py-2"/>
+        <MudImage Src="rioave.png" Height="35" Alt="Rio Ave" Class="mr-3" />
         
-        <MudDivider Vertical="true" FlexItem="true" Class="mx-4" Style="height: 30px; align-self: center; border-color: rgba(255,255,255,0.3);" />
-
-        <MudText Typo="Typo.h6" Style="font-weight: 600; letter-spacing: 1px;">
-            GESTÃO DE SALAS
-        </MudText>
-        
+        <MudText Typo="Typo.h6" Color="Color.Primary" Style="font-weight: 800;">GESTÃO DE SALAS</MudText>
         <MudSpacer />
-        
-        <MudIconButton Icon="@Icons.Material.Filled.Notifications" Color="Color.Inherit" Edge="Edge.End" />
-        <MudIconButton Icon="@Icons.Material.Filled.AccountCircle" Color="Color.Inherit" Edge="Edge.End" Class="ml-2" />
+        <MudIconButton Icon="@Icons.Material.Outlined.Notifications" Color="Color.Default" />
+        <MudIconButton Icon="@Icons.Material.Outlined.AccountCircle" Color="Color.Default" />
     </MudAppBar>
-    
-    <MudMainContent Class="pt-8 px-6">
+
+    <MudDrawer @bind-Open="_drawerOpen" ClipMode="DrawerClipMode.Always" Elevation="2" Variant="@DrawerVariant.Responsive" Class="rioave-sidebar">
+        <MudNavMenu Class="pt-4">
+             <MudNavLink Href="/" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Dashboard">Dashboard</MudNavLink>
+             <MudNavLink Href="/calendario" Icon="@Icons.Material.Filled.CalendarMonth">Calendário</MudNavLink>
+        </MudNavMenu>
+    </MudDrawer>
+
+    <MudMainContent Class="pt-16 px-4">
         <MudContainer MaxWidth="MaxWidth.ExtraLarge">
             @Body
         </MudContainer>
     </MudMainContent>
 </MudLayout>
+
+@code {
+    private bool _drawerOpen = true;
+    private void DrawerToggle() => _drawerOpen = !_drawerOpen;
+
+    private MudTheme _rioAveTheme = new MudTheme()
+    {
+        PaletteLight = new PaletteLight()
+        {
+            Primary = "#003B5C", // Azul Rio Ave
+            Secondary = "#007ACC",
+            AppbarBackground = "#FFFFFF",
+            Background = "#F4F7F9",
+            Surface = "#FFFFFF",
+            TextPrimary = "#1A2C38",
+            TextSecondary = "#546E7A", // Aqui no tema está correto
+            DrawerBackground = "#003B5C",
+            DrawerText = "#FFFFFF",
+            DrawerIcon = "#FFFFFF"
+        }
+    };
+}

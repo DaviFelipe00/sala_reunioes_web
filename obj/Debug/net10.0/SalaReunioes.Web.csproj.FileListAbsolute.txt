@@ -177,4 +177,4 @@ C:\Users\DaviBarbosa\Dev\SalaReunioes.Web\obj\Debug\net10.0\refint\SalaReunioes.
 C:\Users\DaviBarbosa\Dev\SalaReunioes.Web\obj\Debug\net10.0\SalaReunioes.Web.pdb
 C:\Users\DaviBarbosa\Dev\SalaReunioes.Web\obj\Debug\net10.0\SalaReunioes.Web.genruntimeconfig.cache
 C:\Users\DaviBarbosa\Dev\SalaReunioes.Web\obj\Debug\net10.0\ref\SalaReunioes.Web.dll
-C:\Users\DaviBarbosa\Dev\SalaReunioes.Web\obj\Debug\net10.0\compressed\ql64mdht7c-{0}-ijk3l9exik-ijk3l9exik.gz
+C:\Users\DaviBarbosa\Dev\SalaReunioes.Web\obj\Debug\net10.0\compressed\ql64mdht7c-{0}-atn3j4e0h2-atn3j4e0h2.gz

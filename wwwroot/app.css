@@ -1,65 +1,38 @@
-/* wwwroot/app.css */
-@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
 
-:root {
-    /* Cores base para o vidro */
-    --glass-bg: rgba(255, 255, 255, 0.1);
-    --glass-border: rgba(255, 255, 255, 0.2);
-    --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.20);
-    --text-color: #ffffff;
+html, body {
+    font-family: 'Inter', sans-serif !important;
+    background-color: #F4F7F9;
 }
 
-body {
-    /* Fundo vibrante para o efeito de vidro funcionar */
-    background: linear-gradient(135deg, #0f2027, #203a43, #2c5364); /* Gradiente Azul Oceano Profundo */
-    background-attachment: fixed; /* O fundo não rola com a página */
-    font-family: 'Montserrat', sans-serif !important; /* Fonte mais moderna */
-    color: var(--text-color);
-}
-
-/* CLASSE MÁGICA: Aplica o efeito Liquid Glass */
-.glass-panel {
-    /* O coração do efeito: desfoque do fundo */
-    backdrop-filter: blur(12px) saturate(150%);
-    -webkit-backdrop-filter: blur(12px) saturate(150%); /* Suporte Safari */
-    
-    /* Cor de fundo translúcida */
-    background-color: var(--glass-bg) !important;
-    
-    /* Borda fina e sombra suave */
-    border: 1px solid var(--glass-border);
-    box-shadow: var(--glass-shadow);
-    
-    /* Cantos arredondados são essenciais */
-    border-radius: 16px !important;
-    
-    /* Garante que o texto dentro seja branco */
-    color: var(--text-color) !important;
-}
-
-/* --- Adaptações para o MudBlazor --- */
-
-/* Força textos do MudBlazor a serem brancos */
-.mud-typography, .mud-icon-root {
-    color: var(--text-color) !important;
-}
-
-/* Remove estilos padrão dos Cards para aplicar o vidro */
-.mud-card {
-    background-color: transparent !important;
-    box-shadow: none !important;
-}
-
-/* Estiliza os Diálogos (Modais) com vidro mais escuro */
-.mud-dialog {
-    backdrop-filter: blur(16px) saturate(180%) !important;
-    background-color: rgba(20, 25, 35, 0.85) !important; /* Vidro escuro */
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 15px 40px rgba(0,0,0,0.5) !important;
+/* Sidebar Corporativo */
+.rioave-sidebar {
+    background-color: #003B5C !important;
     color: white !important;
 }
 
-/* Ajusta cores dos inputs para funcionarem em fundo escuro */
-.mud-input-label { color: rgba(255,255,255,0.7) !important; }
-.mud-input-control > .mud-input-control-input-container > .mud-input-slot { color: white !important; }
-.mud-picker-datepicker-content .mud-picker-calendar-header-transition { color: black !important; } /* Calendário precisa de contraste */
+/* Ajuste para o efeito de desfoque nos diálogos (Liquid Glass suave) */
+.blur-backdrop {
+    backdrop-filter: blur(8px);
+    background-color: rgba(0, 59, 92, 0.2) !important;
+}
+
+/* Estilo customizado para os Cards do Dashboard */
+.rioave-card {
+    border-top: 4px solid #003B5C;
+    transition: all 0.3s ease;
+}
+
+.rioave-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important;
+}
+
+.blur-backdrop {
+    backdrop-filter: blur(8px);
+    background-color: rgba(0, 59, 92, 0.2) !important;
+}
+
+.rioave-sidebar {
+    background-color: #003B5C !important;
+}
