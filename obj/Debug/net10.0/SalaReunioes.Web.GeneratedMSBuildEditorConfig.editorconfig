@@ -37,6 +37,14 @@ build_property.EnableCodeStyleSeverity =
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xBcHAucmF6b3I=
 build_metadata.AdditionalFiles.CssScope = 
 
+[C:/Users/DaviBarbosa/Dev/SalaReunioes.Web/Components/Pages/Admin/GerenciarSalas.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xBZG1pblxHZXJlbmNpYXJTYWxhcy5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/DaviBarbosa/Dev/SalaReunioes.Web/Components/Pages/Admin/Login.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xBZG1pblxMb2dpbi5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
 [C:/Users/DaviBarbosa/Dev/SalaReunioes.Web/Components/Pages/Calendario.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xDYWxlbmRhcmlvLnJhem9y
 build_metadata.AdditionalFiles.CssScope = 

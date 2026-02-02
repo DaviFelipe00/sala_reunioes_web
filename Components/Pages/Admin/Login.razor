@@ -1,0 +1,40 @@
+@page "/login"
+@using Microsoft.AspNetCore.Identity
+@using System.ComponentModel.DataAnnotations
+@inject SignInManager<IdentityUser> SignInManager
+@inject NavigationManager Navigation
+
+<MudContainer MaxWidth="MaxWidth.Small" Class="mt-16">
+    <MudPaper Class="pa-8" Elevation="3">
+        <MudText Typo="Typo.h4" Align="Align.Center" GutterBottom="true">Admin Login</MudText>
+        
+        <EditForm Model="@loginModel" OnValidSubmit="OnLoginSubmit">
+            <DataAnnotationsValidator />
+            <MudTextField Label="Usuário" @bind-Value="loginModel.UserName" 
+                          Variant="Variant.Outlined" Class="mt-4" />
+            <MudTextField Label="Senha" @bind-Value="loginModel.Password" 
+                          InputType="InputType.Password" Variant="Variant.Outlined" Class="mt-4" />
+            
+            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" 
+                       Color="Color.Primary" FullWidth="true" Class="mt-6">Entrar</MudButton>
+        </EditForm>
+    </MudPaper>
+</MudContainer>
+
+@code {
+    private LoginModel loginModel = new();
+
+    private async Task OnLoginSubmit()
+    {
+        var result = await SignInManager.PasswordSignInAsync(loginModel.UserName, loginModel.Password, false, false);
+        if (result.Succeeded)
+        {
+            Navigation.NavigateTo("/admin/salas");
+        }
+    }
+
+    public class LoginModel {
+        [Required] public string UserName { get; set; }
+        [Required] public string Password { get; set; }
+    }
+}

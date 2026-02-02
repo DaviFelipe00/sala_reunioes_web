@@ -1,15 +1,22 @@
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using SalaReunioes.Web.Domain.Entities;
 
 namespace SalaReunioes.Web.Infrastructure.Data;
 
-public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options)
+/// <summary>
+/// Contexto do banco de dados configurado para suportar o ASP.NET Core Identity.
+/// </summary>
+public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbContext(options)
 {
     public DbSet<Sala> Salas => Set<Sala>();
     public DbSet<Agendamento> Agendamentos => Set<Agendamento>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        // OBRIGATÓRIO: Chama a configuração base do Identity para criar as tabelas de usuários e permissões
+        base.OnModelCreating(modelBuilder);
+
         // Configura o relacionamento: Uma Sala tem muitos Agendamentos
         modelBuilder.Entity<Sala>()
             .HasMany(s => s.Agendamentos)

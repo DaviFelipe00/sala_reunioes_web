@@ -1,0 +1,71 @@
+@page "/admin/salas"
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@using SalaReunioes.Web.Domain.Entities
+@using SalaReunioes.Web.Infrastructure.Services
+@inject AgendamentoService AgendamentoService
+@inject ISnackbar Snackbar
+
+<MudText Typo="Typo.h4" GutterBottom="true">Gerenciar Salas</MudText>
+
+<MudPaper Class="pa-4 mb-4">
+    <MudText Typo="Typo.h6">Nova Sala</MudText>
+    <div class="d-flex align-center gap-4">
+        <MudTextField @bind-Value="novaSala.Nome" Label="Nome da Sala" Variant="Variant.Outlined" Margin="Margin.Dense" />
+        <MudNumericField @bind-Value="novaSala.Capacidade" Label="Capacidade" Variant="Variant.Outlined" Margin="Margin.Dense" />
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SalvarSala">Adicionar</MudButton>
+    </div>
+</MudPaper>
+
+<MudTable Items="@salas" Hover="true" Breakpoint="Breakpoint.Sm" Loading="@loading">
+    <HeaderContent>
+        <MudTh>Nome</MudTh>
+        <MudTh>Capacidade</MudTh>
+        <MudTh>Ações</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="Nome">@context.Nome</MudTd>
+        <MudTd DataLabel="Capacidade">@context.Capacidade</MudTd>
+        <MudTd>
+            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" OnClick="@(() => ConfirmarExclusao(context.Id))" />
+        </MudTd>
+    </RowTemplate>
+</MudTable>
+
+@code {
+    private List<Sala> salas = new();
+    private Sala novaSala = new();
+    private bool loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CarregarSalas();
+    }
+
+    private async Task CarregarSalas()
+    {
+        loading = true;
+        // Reutiliza o método que lista salas
+        salas = await AgendamentoService.ListarSalasComAgendamentosAsync();
+        loading = false;
+    }
+
+    private async Task SalvarSala()
+    {
+        if (string.IsNullOrWhiteSpace(novaSala.Nome)) return;
+        await AgendamentoService.AdicionarSalaAsync(novaSala);
+        novaSala = new Sala();
+        await CarregarSalas();
+        Snackbar.Add("Sala adicionada!", Severity.Success);
+    }
+
+    private async Task ConfirmarExclusao(Guid id)
+    {
+        var sucesso = await AgendamentoService.ExcluirSalaAsync(id);
+        if (sucesso)
+        {
+            await CarregarSalas();
+            Snackbar.Add("Sala removida com sucesso.", Severity.Info);
+        }
+    }
+}

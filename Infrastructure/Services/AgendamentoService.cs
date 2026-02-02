@@ -8,6 +8,10 @@ namespace SalaReunioes.Web.Infrastructure.Services;
 
 public class AgendamentoService(AppDbContext context, IHubContext<AgendamentoHub> hubContext)
 {
+    // ==========================================
+    // SEÇÃO DE AGENDAMENTOS (DASHBOARD & CALENDÁRIO)
+    // ==========================================
+
     /// <summary>
     /// Lista todas as salas com reuniões de hoje em diante.
     /// Ideal para o Dashboard principal.
@@ -68,7 +72,7 @@ public class AgendamentoService(AppDbContext context, IHubContext<AgendamentoHub
             context.Agendamentos.Add(novo);
             await context.SaveChangesAsync();
 
-            // PONTO CHAVE: Notifica todos os clientes conectados via SignalR
+            // Notifica todos os clientes conectados via SignalR
             await hubContext.Clients.All.SendAsync("ReceberAtualizacao");
 
             return (true, "Agendamento realizado com sucesso!");
@@ -94,5 +98,51 @@ public class AgendamentoService(AppDbContext context, IHubContext<AgendamentoHub
         await hubContext.Clients.All.SendAsync("ReceberAtualizacao");
 
         return true;
+    }
+
+    // ==========================================
+    // SEÇÃO ADMINISTRATIVA (SISTEMA DE ADMIN)
+    // ==========================================
+
+    /// <summary>
+    /// Adiciona uma nova sala ao sistema.
+    /// </summary>
+    public async Task AdicionarSalaAsync(Sala novaSala)
+    {
+        context.Salas.Add(novaSala);
+        await context.SaveChangesAsync();
+        
+        // Notifica para que a nova sala apareça no dashboard imediatamente
+        await hubContext.Clients.All.SendAsync("ReceberAtualizacao");
+    }
+
+    /// <summary>
+    /// Remove uma sala e limpa todos os seus agendamentos vinculados.
+    /// </summary>
+    public async Task<bool> ExcluirSalaAsync(Guid salaId)
+    {
+        var sala = await context.Salas
+            .Include(s => s.Agendamentos)
+            .FirstOrDefaultAsync(s => s.Id == salaId);
+
+        if (sala == null) return false;
+
+        context.Salas.Remove(sala);
+        await context.SaveChangesAsync();
+
+        // Notifica a remoção para todos os clientes
+        await hubContext.Clients.All.SendAsync("ReceberAtualizacao");
+
+        return true;
+    }
+
+    /// <summary>
+    /// Lista todos os agendamentos registrados no banco (Histórico completo).
+    /// </summary>
+    public async Task<List<Agendamento>> ListarTodosAgendamentosAdminAsync()
+    {
+        return await context.Agendamentos
+            .OrderByDescending(a => a.Inicio)
+            .ToListAsync();
     }
 }
