@@ -1,9 +1,9 @@
+@using System.ComponentModel.DataAnnotations
 @using SalaReunioes.Web.Domain.Entities
 @using SalaReunioes.Web.Infrastructure.Services
 @inject AgendamentoService AgendamentoService
 @inject ISnackbar Snackbar
 
-@* No MudBlazor v7, passamos a classe de ações aqui *@
 <MudDialog ClassActions="px-6 pb-6">
     <TitleContent>
         <MudText Typo="Typo.h6" Color="Color.Primary" Class="fw-bold d-flex align-center">
@@ -12,25 +12,52 @@
         </MudText>
     </TitleContent>
     <DialogContent>
-        <MudContainer Class="px-0 py-2">
-            @* CORREÇÃO: Style em vez de Color *@
-            <MudText Typo="Typo.body2" Style="color: var(--mud-palette-text-secondary)" Class="mb-4">
-                Preencha os detalhes da reunião abaixo.
-            </MudText>
-            <MudStack Spacing="4">
-                <MudTextField @bind-Value="novoAgendamento.Titulo" Label="Título" Variant="Variant.Outlined" Margin="Margin.Dense" Required="true" />
-                <MudTextField @bind-Value="novoAgendamento.Responsavel" Label="Responsável" Variant="Variant.Outlined" Margin="Margin.Dense" Required="true" />
-                <MudDatePicker Label="Data" @bind-Date="dataSelecionada" Variant="Variant.Outlined" Margin="Margin.Dense" Color="Color.Primary" />
-                <MudStack Row="true">
-                    <MudTimePicker Label="Início" @bind-Time="horaInicio" Variant="Variant.Outlined" Margin="Margin.Dense" />
-                    <MudTimePicker Label="Fim" @bind-Time="horaFim" Variant="Variant.Outlined" Margin="Margin.Dense" />
+        <MudForm @ref="_form" @bind-IsValid="@_formIsValid">
+            <MudContainer Class="px-0 py-2">
+                <MudText Typo="Typo.body2" Style="color: var(--mud-palette-text-secondary)" Class="mb-4">
+                    Preencha os detalhes da reunião abaixo.
+                </MudText>
+                <MudStack Spacing="4">
+                    <MudTextField @bind-Value="novoAgendamento.Titulo" 
+                                 Label="Título" 
+                                 For="@(() => novoAgendamento.Titulo)"
+                                 Variant="Variant.Outlined" 
+                                 Margin="Margin.Dense" />
+
+                    <MudTextField @bind-Value="novoAgendamento.Responsavel" 
+                                 Label="Responsável" 
+                                 For="@(() => novoAgendamento.Responsavel)"
+                                 Variant="Variant.Outlined" 
+                                 Margin="Margin.Dense" />
+
+                    <MudDatePicker Label="Data" 
+                                  @bind-Date="dataSelecionada" 
+                                  Variant="Variant.Outlined" 
+                                  Margin="Margin.Dense" 
+                                  Color="Color.Primary" />
+
+                    <MudStack Row="true">
+                        <MudTimePicker Label="Início" 
+                                      @bind-Time="horaInicio" 
+                                      Variant="Variant.Outlined" 
+                                      Margin="Margin.Dense" />
+
+                        <MudTimePicker Label="Fim" 
+                                      @bind-Time="horaFim" 
+                                      Variant="Variant.Outlined" 
+                                      Margin="Margin.Dense" />
+                    </MudStack>
                 </MudStack>
-            </MudStack>
-        </MudContainer>
+            </MudContainer>
+        </MudForm>
     </DialogContent>
     <DialogActions>
         <MudButton OnClick="Cancel" Variant="Variant.Text">Cancelar</MudButton>
-        <MudButton Color="Color.Secondary" Variant="Variant.Filled" OnClick="Submit" Class="px-6 rounded-lg">Confirmar</MudButton>
+        <MudButton Color="Color.Secondary" 
+                   Variant="Variant.Filled" 
+                   OnClick="Submit" 
+                   Class="px-6 rounded-lg"
+                   Disabled="@(!_formIsValid)">Confirmar</MudButton>
     </DialogActions>
 </MudDialog>
 
@@ -39,30 +66,50 @@
     [Parameter] public Guid SalaId { get; set; }
     [Parameter] public string SalaNome { get; set; } = "";
 
+    private MudForm _form = null!;
+    private bool _formIsValid;
     private Agendamento novoAgendamento = new();
+    
+    // Inicializamos com valores padrão
     private DateTime? dataSelecionada = DateTime.Today;
     private TimeSpan? horaInicio = new TimeSpan(DateTime.Now.Hour + 1, 0, 0);
     private TimeSpan? horaFim = new TimeSpan(DateTime.Now.Hour + 2, 0, 0);
+
+    private static readonly TimeZoneInfo BrasiliaTimeZone = 
+        TimeZoneInfo.FindSystemTimeZoneById("E. South America Standard Time");
 
     private void Cancel() => MudDialog.Cancel();
 
     private async Task Submit()
     {
-        if (dataSelecionada.HasValue && horaInicio.HasValue && horaFim.HasValue)
+        await _form.Validate();
+
+        if (_form.IsValid && dataSelecionada.HasValue && horaInicio.HasValue && horaFim.HasValue)
         {
-            var inicioLocal = dataSelecionada.Value.Date + horaInicio.Value;
-            var fimLocal = dataSelecionada.Value.Date + horaFim.Value;
+            // SOLUÇÃO: Criamos o DateTime combinando data e hora
+            var dataBase = dataSelecionada.Value.Date;
+            var inicioBr = dataBase.Add(horaInicio.Value);
+            var fimBr = dataBase.Add(horaFim.Value);
+
+            // Forçamos o Kind para Unspecified. 
+            // Isso informa ao TimeZoneInfo que o horário é puramente de Brasília, 
+            // ignorando o fuso horário local do servidor (que causava o erro).
+            var inicioSemFuso = DateTime.SpecifyKind(inicioBr, DateTimeKind.Unspecified);
+            var fimSemFuso = DateTime.SpecifyKind(fimBr, DateTimeKind.Unspecified);
 
             novoAgendamento.SalaId = SalaId;
-            novoAgendamento.Inicio = inicioLocal.ToUniversalTime();
-            novoAgendamento.Fim = fimLocal.ToUniversalTime();
+            novoAgendamento.Inicio = TimeZoneInfo.ConvertTimeToUtc(inicioSemFuso, BrasiliaTimeZone);
+            novoAgendamento.Fim = TimeZoneInfo.ConvertTimeToUtc(fimSemFuso, BrasiliaTimeZone);
 
             var (sucesso, mensagem) = await AgendamentoService.ReservarAsync(novoAgendamento);
             
-            if (sucesso) {
+            if (sucesso) 
+            {
                 Snackbar.Add(mensagem, Severity.Success);
                 MudDialog.Close(DialogResult.Ok(true));
-            } else {
+            } 
+            else 
+            {
                 Snackbar.Add(mensagem, Severity.Error);
             }
         }

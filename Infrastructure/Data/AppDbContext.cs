@@ -17,21 +17,24 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbCo
         // OBRIGATÓRIO: Chama a configuração base do Identity para criar as tabelas de usuários e permissões
         base.OnModelCreating(modelBuilder);
 
-        // Configura o relacionamento: Uma Sala tem muitos Agendamentos
+        // --- CORREÇÃO DO MAPEAMENTO ---
+        // Configuramos explicitamente que um Agendamento pertence a uma Sala.
+        // O uso de .WithOne(a => a.Sala) impede que o EF crie a coluna fantasma 'SalaId1'.
         modelBuilder.Entity<Sala>()
             .HasMany(s => s.Agendamentos)
-            .WithOne()
-            .HasForeignKey(a => a.SalaId);
+            .WithOne(a => a.Sala) 
+            .HasForeignKey(a => a.SalaId)
+            .OnDelete(DeleteBehavior.Cascade); // Exclui agendamentos se a sala for removida
 
-        // Seed Data: Criação das 6 salas padrão da Rio Ave
-        // Usamos GUIDs fixos para garantir que o 'database update' não tente criar novas salas toda vez
+        // --- SEED DATA ---
+        // Usamos GUIDs fixos para garantir que o 'database update' seja idempotente
         for (int i = 1; i <= 6; i++)
         {
             modelBuilder.Entity<Sala>().HasData(new Sala 
             { 
                 Id = Guid.Parse($"00000000-0000-0000-0000-00000000000{i}"), 
                 Nome = $"Sala {i}", 
-                Capacidade = i <= 3 ? 12 : 8 // Exemplo: Salas 1 a 3 são maiores
+                Capacidade = i <= 3 ? 12 : 8 
             });
         }
     }

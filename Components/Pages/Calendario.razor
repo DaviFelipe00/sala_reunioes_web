@@ -1,5 +1,4 @@
 @page "/calendario"
-@using Microsoft.AspNetCore.SignalR.Client
 @using Heron.MudCalendar
 @using SalaReunioes.Web.Domain.Entities
 @using SalaReunioes.Web.Infrastructure.Services
@@ -7,10 +6,14 @@
 
 <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-6">
     <div class="d-flex align-center justify-space-between mb-4">
-        <MudText Typo="Typo.h4" Color="Color.Primary" Class="fw-bold">Calendário Rio Ave</MudText>
+        <div>
+            <MudText Typo="Typo.h4" Color="Color.Primary" Class="fw-bold">Agenda Rio Ave</MudText>
+            <MudText Typo="Typo.subtitle1" Class="mud-text-secondary">Visualize as ocupações das salas</MudText>
+        </div>
         
-        <div style="width: 250px;">
-            <MudSelect T="Guid?" Label="Filtrar por Sala" Value="@_salaIdFiltro" ValueChanged="OnSalaFiltroChanged" AnchorOrigin="Origin.BottomCenter">
+        <div class="d-flex align-center gap-4">
+            <MudSelect T="Guid?" Label="Filtrar por Sala" Value="@_salaIdFiltro" ValueChanged="OnSalaFiltroChanged" 
+                       Variant="Variant.Outlined" Margin="Margin.Dense" Style="width: 200px; background: white;">
                 <MudSelectItem T="Guid?" Value="null">Todas as Salas</MudSelectItem>
                 @if (todasSalas != null)
                 {
@@ -20,18 +23,53 @@
                     }
                 }
             </MudSelect>
+
+            <MudToggleGroup T="CalendarView" @bind-Value="_view" Color="Color.Primary" Outline="true" Delimiters="true">
+                <MudToggleItem Value="CalendarView.Month">Mês</MudToggleItem>
+                <MudToggleItem Value="CalendarView.Week">Semana</MudToggleItem>
+            </MudToggleGroup>
         </div>
     </div>
 
     <MudPaper Class="pa-4 rounded-lg shadow-sm">
-        <MudCalendar Items="_events" Color="Color.Primary" Class="rioave-calendar" Style="height: 700px;"/>
+        @* T="CustomCalendarItem" é vital para que o componente aceite nossa classe personalizada *@
+        <MudCalendar T="CustomCalendarItem" 
+                     Items="_events" 
+                     @bind-View="_view" 
+                     Color="Color.Primary" 
+                     Style="height: 700px;">
+            
+            <MonthView>
+                <ItemTemplate Context="reserva">
+                    <div class="pa-1 mud-elevation-1 mb-1" 
+                         style="background-color: @GetColorHex(reserva.SalaColor); color: white; border-radius: 4px; font-size: 0.7rem; cursor: pointer;">
+                        <div class="fw-bold" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">@reserva.Text</div>
+                        <div style="opacity: 0.8; font-size: 0.6rem;">@reserva.NomeSala</div>
+                    </div>
+                </ItemTemplate>
+            </MonthView>
+
+            <WeekView>
+                <ItemTemplate Context="reserva">
+                    <div class="pa-2 mud-elevation-2 d-flex flex-column justify-center" 
+                         style="background-color: @GetColorHex(reserva.SalaColor); color: white; border-radius: 4px; height: 100%; border-left: 4px solid rgba(0,0,0,0.2);">
+                        <MudText Typo="Typo.caption" Class="fw-bold">@reserva.Text</MudText>
+                        <MudText Typo="Typo.caption" Style="font-size: 0.65rem; opacity: 0.9;">@reserva.NomeSala</MudText>
+                    </div>
+                </ItemTemplate>
+            </WeekView>
+
+        </MudCalendar>
     </MudPaper>
 </MudContainer>
 
 @code {
-    private List<CalendarItem> _events = new();
+    private List<CustomCalendarItem> _events = new();
     private List<Sala>? todasSalas;
     private Guid? _salaIdFiltro;
+    private CalendarView _view = CalendarView.Month;
+
+    private static readonly TimeZoneInfo BrasiliaTimeZone = TimeZoneInfo.FindSystemTimeZoneById("E. South America Standard Time");
 
     protected override async Task OnInitializedAsync()
     {
@@ -47,21 +85,45 @@
 
     private async Task CarregarEventos()
     {
-        var inicio = DateTime.Today.AddMonths(-1);
-        var fim = DateTime.Today.AddMonths(2);
-        var agendamentos = await Service.ObterAgendamentosPorPeriodoAsync(inicio, fim);
+        var hojeBr = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, BrasiliaTimeZone).Date;
+        var inicioRange = hojeBr.AddMonths(-1);
+        var fimRange = hojeBr.AddMonths(2);
 
-        // Aplica o filtro por sala se selecionado
+        var agendamentos = await Service.ObterAgendamentosPorPeriodoAsync(inicioRange, fimRange);
+
         if (_salaIdFiltro.HasValue)
             agendamentos = agendamentos.Where(a => a.SalaId == _salaIdFiltro.Value).ToList();
 
-        _events = agendamentos.Select(a => new CalendarItem
+        _events = agendamentos.Select(a => new CustomCalendarItem
         {
-            Start = a.Inicio.ToLocalTime(),
-            End = a.Fim.ToLocalTime(),
-            Text = $"{a.Titulo} (Sala {salaNome(a.SalaId)})",
+            Start = TimeZoneInfo.ConvertTimeFromUtc(a.Inicio, BrasiliaTimeZone),
+            End = TimeZoneInfo.ConvertTimeFromUtc(a.Fim, BrasiliaTimeZone),
+            Text = a.Titulo,
+            NomeSala = todasSalas?.FirstOrDefault(s => s.Id == a.SalaId)?.Nome ?? "Sala",
+            SalaColor = GetColorBySala(a.SalaId)
         }).ToList();
     }
 
-    private string salaNome(Guid id) => todasSalas?.FirstOrDefault(s => s.Id == id)?.Nome ?? "";
+    private Color GetColorBySala(Guid salaId)
+    {
+        var idStr = salaId.ToString();
+        // Lógica simples para alternar cores baseada no ID da sala
+        if (idStr.EndsWith("1")) return Color.Primary;
+        if (idStr.EndsWith("2")) return Color.Secondary;
+        if (idStr.EndsWith("3")) return Color.Info;
+        if (idStr.EndsWith("4")) return Color.Success;
+        if (idStr.EndsWith("5")) return Color.Warning;
+        return Color.Error;
+    }
+
+    private string GetColorHex(Color color) => color switch
+    {
+        Color.Primary => "#594AE2",
+        Color.Secondary => "#FF4081",
+        Color.Info => "#2196F3",
+        Color.Success => "#00C853",
+        Color.Warning => "#FFD600",
+        Color.Error => "#F44336",
+        _ => "#9E9E9E"
+    };
 }

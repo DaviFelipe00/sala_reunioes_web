@@ -8,18 +8,24 @@ namespace SalaReunioes.Web.Infrastructure.Services;
 
 public class AgendamentoService(AppDbContext context, IHubContext<AgendamentoHub> hubContext)
 {
+    // Define o fuso horário oficial da Rio Ave (Brasília)
+    private static readonly TimeZoneInfo BrasiliaTimeZone = 
+        TimeZoneInfo.FindSystemTimeZoneById("E. South America Standard Time");
+
+    // Configurações de Regra de Negócio
+    private const int DuracaoMaximaHoras = 4;
+    private const int HoraInicioComercial = 8;
+    private const int HoraFimComercial = 19;
+
     // ==========================================
     // SEÇÃO DE AGENDAMENTOS (DASHBOARD & CALENDÁRIO)
     // ==========================================
 
-    /// <summary>
-    /// Lista todas as salas com reuniões de hoje em diante.
-    /// Ideal para o Dashboard principal.
-    /// </summary>
     public async Task<List<Sala>> ListarSalasComAgendamentosAsync()
     {
-        // Define o início do dia atual em UTC para comparação no Postgres
-        var hojeUtc = DateTime.SpecifyKind(DateTime.UtcNow.Date, DateTimeKind.Utc);
+        // Obtém o início do dia atual no fuso de Brasília e converte para UTC para o banco
+        var agoraBrasilia = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, BrasiliaTimeZone);
+        var hojeUtc = TimeZoneInfo.ConvertTimeToUtc(agoraBrasilia.Date, BrasiliaTimeZone);
 
         return await context.Salas
             .Include(s => s.Agendamentos
@@ -28,10 +34,6 @@ public class AgendamentoService(AppDbContext context, IHubContext<AgendamentoHub
             .ToListAsync();
     }
 
-    /// <summary>
-    /// Busca todos os agendamentos em um intervalo de datas.
-    /// Essencial para o funcionamento do componente de Calendário.
-    /// </summary>
     public async Task<List<Agendamento>> ObterAgendamentosPorPeriodoAsync(DateTime inicio, DateTime fim)
     {
         var inicioUtc = DateTime.SpecifyKind(inicio, DateTimeKind.Utc);
@@ -43,22 +45,32 @@ public class AgendamentoService(AppDbContext context, IHubContext<AgendamentoHub
             .ToListAsync();
     }
 
-    /// <summary>
-    /// Realiza um novo agendamento com validação de conflitos e notificação em tempo real.
-    /// </summary>
     public async Task<(bool Sucesso, string Mensagem)> ReservarAsync(Agendamento novo)
     {
-        // Garante Kind Utc para evitar erros binários no timestamptz do Postgres
+        // 1. Normalização de Datas para UTC (Exigência do PostgreSQL timestamptz)
         novo.Inicio = DateTime.SpecifyKind(novo.Inicio, DateTimeKind.Utc);
         novo.Fim = DateTime.SpecifyKind(novo.Fim, DateTimeKind.Utc);
 
+        // 2. Validações Básicas e de Passado
         if (novo.Inicio >= novo.Fim)
             return (false, "A hora de início deve ser anterior à hora de fim.");
 
         if (novo.Inicio < DateTime.UtcNow)
             return (false, "Não é possível agendar reuniões no passado.");
 
-        // Verificação de sobreposição: (InícioA < FimB) E (FimA > InícioB)
+        // 3. Validação de Duração Máxima
+        var duracao = novo.Fim - novo.Inicio;
+        if (duracao.TotalHours > DuracaoMaximaHoras)
+            return (false, $"A reserva não pode exceder {DuracaoMaximaHoras} horas.");
+
+        // 4. Validação de Horário Comercial (em fuso Brasília)
+        var inicioBr = TimeZoneInfo.ConvertTimeFromUtc(novo.Inicio, BrasiliaTimeZone);
+        var fimBr = TimeZoneInfo.ConvertTimeFromUtc(novo.Fim, BrasiliaTimeZone);
+
+        if (inicioBr.Hour < HoraInicioComercial || fimBr.Hour > HoraFimComercial || (fimBr.Hour == HoraFimComercial && fimBr.Minute > 0))
+            return (false, $"As reservas devem ser feitas entre {HoraInicioComercial:D2}:00 e {HoraFimComercial:D2}:00.");
+
+        // 5. Verificação de Conflitos (Sobreposição)
         var conflito = await context.Agendamentos
             .AnyAsync(a => a.SalaId == novo.SalaId && 
                            a.Inicio < novo.Fim && 
@@ -72,20 +84,18 @@ public class AgendamentoService(AppDbContext context, IHubContext<AgendamentoHub
             context.Agendamentos.Add(novo);
             await context.SaveChangesAsync();
 
-            // Notifica todos os clientes conectados via SignalR
+            // Notifica em tempo real via SignalR
             await hubContext.Clients.All.SendAsync("ReceberAtualizacao");
 
             return (true, "Agendamento realizado com sucesso!");
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            // Em produção, aqui entraria um log (ex: Serilog) registrando o ex.Message
             return (false, "Erro técnico ao salvar no banco de dados.");
         }
     }
 
-    /// <summary>
-    /// Remove um agendamento e atualiza todos os dashboards em tempo real.
-    /// </summary>
     public async Task<bool> CancelarAgendamentoAsync(Guid agendamentoId)
     {
         var agendamento = await context.Agendamentos.FindAsync(agendamentoId);
@@ -94,31 +104,21 @@ public class AgendamentoService(AppDbContext context, IHubContext<AgendamentoHub
         context.Agendamentos.Remove(agendamento);
         await context.SaveChangesAsync();
 
-        // Notifica a remoção para que as salas fiquem "Livre" instantaneamente na UI
         await hubContext.Clients.All.SendAsync("ReceberAtualizacao");
-
         return true;
     }
 
     // ==========================================
-    // SEÇÃO ADMINISTRATIVA (SISTEMA DE ADMIN)
+    // SEÇÃO ADMINISTRATIVA
     // ==========================================
 
-    /// <summary>
-    /// Adiciona uma nova sala ao sistema.
-    /// </summary>
     public async Task AdicionarSalaAsync(Sala novaSala)
     {
         context.Salas.Add(novaSala);
         await context.SaveChangesAsync();
-        
-        // Notifica para que a nova sala apareça no dashboard imediatamente
         await hubContext.Clients.All.SendAsync("ReceberAtualizacao");
     }
 
-    /// <summary>
-    /// Remove uma sala e limpa todos os seus agendamentos vinculados.
-    /// </summary>
     public async Task<bool> ExcluirSalaAsync(Guid salaId)
     {
         var sala = await context.Salas
@@ -129,16 +129,11 @@ public class AgendamentoService(AppDbContext context, IHubContext<AgendamentoHub
 
         context.Salas.Remove(sala);
         await context.SaveChangesAsync();
-
-        // Notifica a remoção para todos os clientes
         await hubContext.Clients.All.SendAsync("ReceberAtualizacao");
 
         return true;
     }
 
-    /// <summary>
-    /// Lista todos os agendamentos registrados no banco (Histórico completo).
-    /// </summary>
     public async Task<List<Agendamento>> ListarTodosAgendamentosAdminAsync()
     {
         return await context.Agendamentos
