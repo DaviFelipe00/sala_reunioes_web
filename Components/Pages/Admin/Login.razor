@@ -1,7 +1,5 @@
 @page "/login"
-@using Microsoft.AspNetCore.Antiforgery
 @using Microsoft.AspNetCore.Identity
-@inject IAntiforgery Antiforgery
 @inject NavigationManager Navigation
 
 <MudContainer MaxWidth="MaxWidth.Small" Class="mt-16">
@@ -13,12 +11,8 @@
             <MudAlert Severity="Severity.Error" Class="mb-4">Usuário ou senha inválidos.</MudAlert>
         }
 
-        @* O segredo está em usar um form HTML padrão com method="post" *@
+        @* Formulário POST direto para o endpoint configurado no Program.cs *@
         <form action="Account/Login" method="post">
-            @* Token de segurança obrigatório para evitar ataques CSRF *@
-            <input type="hidden" name="__RequestVerificationToken" value="@GetAntiforgeryToken()" />
-
-            @* Note que usamos o atributo 'name' para o ASP.NET identificar os campos *@
             <MudTextField Label="Usuário" Name="UserName" Variant="Variant.Outlined" 
                           Class="mt-4" Required="true" T="string" />
             
@@ -34,24 +28,14 @@
 </MudContainer>
 
 @code {
-    [CascadingParameter]
-    public HttpContext? HttpContext { get; set; }
-
     private bool showError = false;
 
     protected override void OnInitialized()
     {
-        // Verifica se a URL contém o erro vindo do redirecionamento
         var uri = Navigation.ToAbsoluteUri(Navigation.Uri);
         if (Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(uri.Query).ContainsKey("error"))
         {
             showError = true;
         }
-    }
-
-    private string GetAntiforgeryToken()
-    {
-        // Gera o token necessário para o POST funcionar
-        return Antiforgery.GetAndStoreTokens(HttpContext!).RequestToken!;
     }
 }
