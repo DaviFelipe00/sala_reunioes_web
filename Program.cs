@@ -1,5 +1,5 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.Identity; // Adicionado para Identity
+using Microsoft.AspNetCore.Identity;
 using MudBlazor.Services;
 using SalaReunioes.Web.Components;
 using SalaReunioes.Web.Infrastructure.Data;
@@ -8,13 +8,12 @@ using SalaReunioes.Web.Infrastructure.Hubs;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// 1. Configuração do Banco de Dados (PostgreSQL)
+// 1. Banco de Dados
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(connectionString));
 
-// 2. Configuração do ASP.NET Core Identity (Sistema de Login)
-// Configuramos políticas de senha simplificadas para ambiente interno
+// 2. Identity Core (Configuração leve)
 builder.Services.AddIdentityCore<IdentityUser>(options => {
     options.Password.RequireDigit = false;
     options.Password.RequiredLength = 6;
@@ -25,7 +24,7 @@ builder.Services.AddIdentityCore<IdentityUser>(options => {
 .AddEntityFrameworkStores<AppDbContext>()
 .AddSignInManager();
 
-// 3. Configurar Autenticação e Autorização
+// 3. Autenticação e Estado do Blazor
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultScheme = IdentityConstants.ApplicationScheme;
@@ -34,41 +33,44 @@ builder.Services.AddAuthentication(options =>
 .AddIdentityCookies();
 
 builder.Services.AddAuthorization();
-builder.Services.AddCascadingAuthenticationState(); // OBRIGATÓRIO para gerenciar estado de login no Blazor
+builder.Services.AddCascadingAuthenticationState(); 
 
-// 4. Registrar o MudBlazor e SignalR
+// 4. Interface e Real-time
 builder.Services.AddMudServices();
-builder.Services.AddSignalR(); //
+builder.Services.AddSignalR();
 
-// 5. Registrar os Serviços de Negócio
-builder.Services.AddScoped<AgendamentoService>(); //
+// 5. Serviços
+builder.Services.AddScoped<AgendamentoService>();
 
-// 6. Configurar componentes Blazor e Interatividade Server-side
+// 6. Blazor Server
 builder.Services.AddRazorComponents()
-    .AddInteractiveServerComponents(); //
+    .AddInteractiveServerComponents();
 
 var app = builder.Build();
 
-// Configuração do pipeline de requisições HTTP
+// Executa o Seed do Admin ao iniciar
+using (var scope = app.Services.CreateScope())
+{
+    await DbInitializer.SeedAdminUser(scope.ServiceProvider);
+}
+
+// Configuração do pipeline
 if (!app.Environment.IsDevelopment())
 {
-    app.UseExceptionHandler("/Error", createScopeForErrors: true); //
+    app.UseExceptionHandler("/Error", createScopeForErrors: true);
     app.UseHsts();
 }
 
 app.UseHttpsRedirection();
-app.UseStaticFiles(); //
-app.UseAntiforgery(); //
+app.UseStaticFiles();
+app.UseAntiforgery(); // Importante para formulários Blazor
 
-// OBRIGATÓRIO: Adicionar os middlewares de segurança na ordem correta
 app.UseAuthentication(); 
 app.UseAuthorization();
 
-// 7. Mapear o Hub do SignalR
-app.MapHub<AgendamentoHub>("/agendamentoHub"); //
+app.MapHub<AgendamentoHub>("/agendamentoHub");
 
-// 8. Configurar o Render Mode do Blazor
 app.MapRazorComponents<App>()
-    .AddInteractiveServerRenderMode(); //
+    .AddInteractiveServerRenderMode();
 
 app.Run();
