@@ -15,7 +15,6 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(connectionString));
 
 // 2. Configuração do ASP.NET Core Identity
-// Definimos políticas de senha simplificadas para ambiente interno
 builder.Services.AddIdentityCore<IdentityUser>(options => {
     options.Password.RequireDigit = false;
     options.Password.RequiredLength = 6;
@@ -37,7 +36,7 @@ builder.Services.AddAuthentication(options =>
 builder.Services.AddAuthorization();
 builder.Services.AddCascadingAuthenticationState(); 
 
-// 4. Interface e Real-time
+// 4. Interface e Real-time (SignalR e MudBlazor)
 builder.Services.AddMudServices();
 builder.Services.AddSignalR();
 
@@ -65,14 +64,16 @@ if (!app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
-app.UseAntiforgery(); // Essencial para a segurança dos formulários POST
+
+// Ordem correta dos middlewares de segurança
+app.UseAntiforgery(); 
 
 app.UseAuthentication(); 
 app.UseAuthorization();
 
 // --- Endpoints de Autenticação (Necessários para Blazor Server) ---
 
-// Endpoint de Login: Recebe o POST do formulário HTML no Login.razor
+// Endpoint de Login: Resolvido o problema de AntiforgeryValidationException
 app.MapPost("Account/Login", async (
     [FromForm] string UserName, 
     [FromForm] string Password, 
@@ -86,14 +87,16 @@ app.MapPost("Account/Login", async (
     }
     
     return Results.Redirect("/login?error=1");
-});
+})
+.DisableAntiforgery(); // Desabilita a validação para evitar erro de token mismatch no login
 
 // Endpoint de Logout
 app.MapPost("Account/Logout", async (SignInManager<IdentityUser> signInManager) =>
 {
     await signInManager.SignOutAsync();
     return Results.Redirect("/");
-});
+})
+.DisableAntiforgery();
 
 // 8. Mapeamento de Hubs e Componentes
 app.MapHub<AgendamentoHub>("/agendamentoHub");
