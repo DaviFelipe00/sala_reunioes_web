@@ -1,24 +1,49 @@
 ﻿@using Microsoft.AspNetCore.Components.Authorization
 
+@* CascadingAuthenticationState provê o estado de login para todos os componentes filhos *@
 <CascadingAuthenticationState>
     <Router AppAssembly="typeof(Program).Assembly">
         <Found Context="routeData">
-            @* Troque RouteView por AuthorizeRouteView *@
+            @* AuthorizeRouteView verifica se a página exige [Authorize] *@
             <AuthorizeRouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)">
+                
+                @* Conteúdo exibido se o usuário NÃO estiver logado e tentar acessar área restrita *@
                 <NotAuthorized>
-                    @* Redireciona para o login se tentar acessar área restrita *@
-                    <script>window.location.href = '/login';</script>
-                    <MudText Color="Color.Error">Você não tem permissão para acessar esta página.</MudText>
+                    @if (!context.User.Identity?.IsAuthenticated ?? false)
+                    {
+                        @* Redirecionamento forçado para a página de login *@
+                        <script>window.location.href = '/login';</script>
+                        <MudAlert Severity="Severity.Info">Redirecionando para o login...</MudAlert>
+                    }
+                    else
+                    {
+                        <MudAlert Severity="Severity.Error">Você não tem permissão para acessar este recurso.</MudAlert>
+                    }
                 </NotAuthorized>
+
+                @* Conteúdo exibido enquanto o sistema verifica o cookie de autenticação *@
                 <Authorizing>
-                    <MudText>Verificando autenticação...</MudText>
+                    <div class="d-flex flex-column align-center justify-center mt-16">
+                        <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+                        <MudText Class="mt-4">Verificando credenciais...</MudText>
+                    </div>
                 </Authorizing>
+
             </AuthorizeRouteView>
             <FocusOnNavigate RouteData="routeData" Selector="h1" />
         </Found>
+
+        @* Configuração para quando o usuário digita uma URL que não existe *@
         <NotFound>
+            <PageTitle>Não Encontrado</PageTitle>
             <LayoutView Layout="typeof(Layout.MainLayout)">
-                <MudText Typo="Typo.h4" Color="Color.Error">Página não encontrada.</MudText>
+                <MudContainer MaxWidth="MaxWidth.Medium" Class="mt-16 text-center">
+                    <MudText Typo="Typo.h3" Color="Color.Error" GutterBottom="true">404</MudText>
+                    <MudText Typo="Typo.h5">Ops! Esta página não existe.</MudText>
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" href="/" Class="mt-6">
+                        Voltar para o Início
+                    </MudButton>
+                </MudContainer>
             </LayoutView>
         </NotFound>
     </Router>
