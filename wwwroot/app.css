@@ -100,3 +100,66 @@ body {
     background-color: rgba(0, 122, 204, 0.4) !important;
     font-weight: 700 !important;
 }
+
+/* APPBAR */
+.appbar-glass {
+    backdrop-filter: blur(10px);
+    background: rgba(255, 255, 255, 0.85);
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+}
+
+/* DRAWER */
+.drawer-glass {
+    background: linear-gradient(180deg, #003B5C 0%, #002B45 100%);
+    color: white;
+}
+
+.nav-section {
+    padding: 0 16px;
+    color: rgba(255,255,255,0.5);
+}
+
+/* NAV LINKS */
+.mud-nav-link {
+    margin: 4px 8px;
+    border-radius: 10px;
+}
+
+.mud-nav-link.active {
+    background: rgba(255,255,255,0.15);
+}
+
+.mud-nav-link:hover {
+    background: rgba(255,255,255,0.1);
+}
+
+/* AVATAR */
+.avatar-click {
+    width: 36px;
+    height: 36px;
+    cursor: pointer;
+}
+
+/* MAIN CONTENT */
+.main-content {
+    padding-top: 80px;
+    padding-left: 24px;
+    padding-right: 24px;
+}
+
+/* LOGOUT BUTTON */
+.menu-logout-btn {
+    background: none;
+    border: none;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    color: inherit;
+    padding: 0;
+}
+
+/* FOOTER DRAWER */
+.footer-drawer {
+    opacity: 0.5;
+}

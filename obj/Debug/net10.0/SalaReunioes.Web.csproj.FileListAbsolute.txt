@@ -154,7 +154,7 @@
 /home/davi/dev/sala_reunioes_web/obj/Debug/net10.0/compressed/0wz98yz2xy-{0}-f96y5mhlyw-f96y5mhlyw.gz
 /home/davi/dev/sala_reunioes_web/obj/Debug/net10.0/compressed/eopr0x3mwt-{0}-3wy6eb7tt2-3wy6eb7tt2.gz
 /home/davi/dev/sala_reunioes_web/obj/Debug/net10.0/compressed/jjtd6l0pqq-{0}-qn7y6fntrq-qn7y6fntrq.gz
-/home/davi/dev/sala_reunioes_web/obj/Debug/net10.0/compressed/ql64mdht7c-{0}-sxug6caa0e-sxug6caa0e.gz
+/home/davi/dev/sala_reunioes_web/obj/Debug/net10.0/compressed/ql64mdht7c-{0}-drar5uakrz-drar5uakrz.gz
 /home/davi/dev/sala_reunioes_web/obj/Debug/net10.0/compressed/b8a02tox70-{0}-bqjiyaj88i-bqjiyaj88i.gz
 /home/davi/dev/sala_reunioes_web/obj/Debug/net10.0/compressed/6s8djjlrq6-{0}-c2jlpeoesf-c2jlpeoesf.gz
 /home/davi/dev/sala_reunioes_web/obj/Debug/net10.0/compressed/orhwfcyd6v-{0}-erw9l3u2r3-erw9l3u2r3.gz
@@ -202,8 +202,6 @@
 /home/davi/dev/sala_reunioes_web/obj/Debug/net10.0/compressed/do5tgaj2zd-{0}-cyz5k529gx-cyz5k529gx.gz
 /home/davi/dev/sala_reunioes_web/obj/Debug/net10.0/compressed/yc0r6cfo1i-{0}-wmp8iwak4q-wmp8iwak4q.gz
 /home/davi/dev/sala_reunioes_web/obj/Debug/net10.0/compressed/z1bqefdem0-{0}-2lgipwaf5j-2lgipwaf5j.gz
-/home/davi/dev/sala_reunioes_web/obj/Debug/net10.0/compressed/hdw6y9jzg2-{0}-jvy1yma81q-jvy1yma81q.gz
-/home/davi/dev/sala_reunioes_web/obj/Debug/net10.0/compressed/rpqukkf0x2-{0}-jvy1yma81q-jvy1yma81q.gz
 /home/davi/dev/sala_reunioes_web/obj/Debug/net10.0/staticwebassets.build.json
 /home/davi/dev/sala_reunioes_web/obj/Debug/net10.0/staticwebassets.build.json.cache
 /home/davi/dev/sala_reunioes_web/obj/Debug/net10.0/staticwebassets.development.json
@@ -215,3 +213,5 @@
 /home/davi/dev/sala_reunioes_web/obj/Debug/net10.0/SalaReunioes.Web.pdb
 /home/davi/dev/sala_reunioes_web/obj/Debug/net10.0/SalaReunioes.Web.genruntimeconfig.cache
 /home/davi/dev/sala_reunioes_web/obj/Debug/net10.0/ref/SalaReunioes.Web.dll
+/home/davi/dev/sala_reunioes_web/obj/Debug/net10.0/compressed/hdw6y9jzg2-{0}-i7pyvbv889-i7pyvbv889.gz
+/home/davi/dev/sala_reunioes_web/obj/Debug/net10.0/compressed/rpqukkf0x2-{0}-i7pyvbv889-i7pyvbv889.gz
