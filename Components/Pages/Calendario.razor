@@ -1,0 +1,65 @@
+@page "/calendario"
+@using SalaReunioes.Web.Domain.Entities
+@using SalaReunioes.Web.Infrastructure.Services
+@using Heron.MudCalendar
+@inject AgendamentoService Service
+@inject NavigationManager Navigation
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-6">
+    <MudText Typo="Typo.h4" Color="Color.Primary" Class="mb-4 fw-bold">Calendário de Reuniões</MudText>
+
+    <MudPaper Elevation="4" Class="pa-4">
+        @* MudCalendar suporta nativamente visualização de Dia, Semana e Mês *@
+        <MudCalendar Items="_events"
+                     Color="Color.Primary"
+                     View="CalendarView.Month"
+                     Class="mud-width-full"
+                     Style="height: 800px;"
+                     OnItemClick="VerDetalhes">
+            <CellTemplate Context="item">
+                <div class="pa-1" style="background-color: var(--mud-palette-primary-lighten); border-radius: 4px;">
+                    <MudText Typo="Typo.caption" Class="fw-bold">
+                        @((item as CustomCalendarItem)?.NomeSala): @item.Text
+                    </MudText>
+                </div>
+            </CellTemplate>
+        </MudCalendar>
+    </MudPaper>
+</MudContainer>
+
+@code {
+    private List<CustomCalendarItem> _events = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CarregarCalendario();
+    }
+
+    private async Task CarregarCalendario()
+    {
+        // Busca todas as salas e seus agendamentos via Service
+        var salas = await Service.ListarSalasComAgendamentosAsync();
+        _events.Clear();
+
+        foreach (var sala in salas)
+        {
+            foreach (var agendamento in sala.Agendamentos)
+            {
+                _events.Add(new CustomCalendarItem
+                {
+                    Start = agendamento.Inicio.ToLocalTime(),
+                    End = agendamento.Fim.ToLocalTime(),
+                    Text = agendamento.Titulo,
+                    NomeSala = sala.Nome,
+                    // Atribui uma cor baseada na lógica de negócio ou ID da sala
+                    SalaColor = Color.Info 
+                });
+            }
+        }
+    }
+
+    private void VerDetalhes(CalendarItem item)
+    {
+        // Lógica para abrir o modal de detalhes, similar à Home.razor
+    }
+}
