@@ -37,6 +37,10 @@ build_property.EnableCodeStyleSeverity =
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9BcHAucmF6b3I=
 build_metadata.AdditionalFiles.CssScope = 
 
+[/home/davi/dev/sala_reunioes_web/Components/Layout/RedirectToLogin.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9MYXlvdXQvUmVkaXJlY3RUb0xvZ2luLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
 [/home/davi/dev/sala_reunioes_web/Components/Pages/Admin/GerenciarSalas.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9BZG1pbi9HZXJlbmNpYXJTYWxhcy5yYXpvcg==
 build_metadata.AdditionalFiles.CssScope = 
