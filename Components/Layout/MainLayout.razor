@@ -1,6 +1,4 @@
 ﻿@inherits LayoutComponentBase
-
-@* 1. Modo Interativo para menus e botões funcionarem *@
 @rendermode InteractiveServer
 
 <MudThemeProvider Theme="_currentTheme" />
@@ -10,51 +8,28 @@
 
 <MudLayout>
     <MudAppBar Elevation="1" Color="Color.Primary" Fixed="true">
+        @* Botão para abrir/fechar o menu lateral *@
         <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@((e) => DrawerToggle())" />
         
+        @* Logo *@
         <div class="d-flex align-center ml-2">
             <img src="rioave.png" alt="Rio Ave" style="height:32px;" class="mr-3" />
         </div>
 
         <MudSpacer />
         
-        <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
-            <MudIconButton Icon="@Icons.Material.Outlined.Notifications" Color="Color.Inherit" />
+        <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+            @* 1. Componente de Notificações (Sino) *@
+            <NotificacoesMenu />
             
-            <MudMenu AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight" Dense="true">
-                <ActivatorContent>
-                    <MudAvatar Color="Color.Secondary" Variant="Variant.Filled" Style="cursor:pointer">D</MudAvatar>
-                </ActivatorContent>
-                <ChildContent>
-                    <MudMenuItem Href="/perfil" Icon="@Icons.Material.Filled.Person">Meu Perfil</MudMenuItem>
-                    <MudDivider />
-                    <MudMenuItem>
-                        <form action="Account/Logout" method="post" style="width: 100%;">
-                            <AntiforgeryToken />
-                            <button type="submit" class="logout-button-reset">
-                                <div class="d-flex align-center">
-                                    <MudIcon Icon="@Icons.Material.Filled.Logout" Size="Size.Small" Class="mr-3" />
-                                    <MudText Typo="Typo.body2">Sair</MudText>
-                                </div>
-                            </button>
-                        </form>
-                    </MudMenuItem>
-                </ChildContent>
-            </MudMenu>
+            @* 2. Componente de Usuário (Avatar + Logout) *@
+            <UserMenu />
         </MudStack>
     </MudAppBar>
 
     <MudDrawer @bind-Open="_drawerOpen" ClipMode="DrawerClipMode.Always" Elevation="2" Variant="@DrawerVariant.Responsive">
-        <MudNavMenu Class="mt-4">
-            <MudNavLink Href="/" Match="NavLinkMatch.All" Icon="@Icons.Material.Outlined.SpaceDashboard">Agendamentos</MudNavLink>
-            <MudNavLink Href="/calendario" Icon="@Icons.Material.Filled.CalendarMonth">Calendário</MudNavLink>
-            <MudNavLink Href="/perfil" Icon="@Icons.Material.Filled.Person">Meu Perfil</MudNavLink>
-            
-            <MudDivider Class="my-2" DividerType="DividerType.Middle" />
-            
-            @* 2. ALTERAÇÃO: Direciona para a tela de Login ("/login") *@
-            <MudNavLink Href="/login" Icon="@Icons.Material.Filled.AdminPanelSettings">Administração</MudNavLink>
-        </MudNavMenu>
+        @* 3. Componente de Navegação Lateral *@
+        <NavMenu />
     </MudDrawer>
 
     <MudMainContent>
@@ -64,28 +39,10 @@
     </MudMainContent>
 </MudLayout>
 
-<style>
-    .logout-button-reset {
-        background: none;
-        border: none;
-        padding: 0;
-        margin: 0;
-        width: 100%;
-        text-align: left;
-        color: inherit;
-        font: inherit;
-        cursor: pointer;
-        display: block;
-    }
-
-    .logout-button-reset:hover {
-        background-color: rgba(0, 0, 0, 0.05);
-    }
-</style>
-
 @code {
     bool _drawerOpen = true;
 
+    // Definição do Tema (Azul Escuro Rio Ave)
     private MudTheme _currentTheme = new MudTheme()
     {
         PaletteLight = new PaletteLight()
@@ -93,12 +50,9 @@
             Primary = "#002147", 
             Secondary = "#00509d",
             AppbarBackground = "#002147",
-            DrawerBackground = "#001529", // Fundo do menu escuro
-            
-            // 3. Força o texto e ícones do menu a serem BRANCOS
+            DrawerBackground = "#001529", 
             DrawerText = "#FFFFFF",
             DrawerIcon = "#FFFFFF",
-            
             Background = "#F4F7F9",
             ActionDefault = "#FFFFFF" 
         }

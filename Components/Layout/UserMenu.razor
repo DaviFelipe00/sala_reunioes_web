@@ -1,0 +1,41 @@
+@using MudBlazor
+
+<MudMenu AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight" Dense="true">
+    <ActivatorContent>
+        <MudAvatar Color="Color.Secondary" Variant="Variant.Filled" Style="cursor:pointer">D</MudAvatar>
+    </ActivatorContent>
+    <ChildContent>
+        <MudMenuItem Href="/perfil" Icon="@Icons.Material.Filled.Person">Meu Perfil</MudMenuItem>
+        <MudDivider />
+        <MudMenuItem>
+            @* Lógica de Logout Segura *@
+            <form action="Account/Logout" method="post" style="width: 100%;">
+                <AntiforgeryToken />
+                <button type="submit" class="logout-button-reset">
+                    <div class="d-flex align-center">
+                        <MudIcon Icon="@Icons.Material.Filled.Logout" Size="Size.Small" Class="mr-3" />
+                        <MudText Typo="Typo.body2">Sair</MudText>
+                    </div>
+                </button>
+            </form>
+        </MudMenuItem>
+    </ChildContent>
+</MudMenu>
+
+<style>
+    .logout-button-reset {
+        background: none;
+        border: none;
+        padding: 0;
+        margin: 0;
+        width: 100%;
+        text-align: left;
+        color: inherit;
+        font: inherit;
+        cursor: pointer;
+        display: block;
+    }
+    .logout-button-reset:hover {
+        background-color: rgba(0, 0, 0, 0.05);
+    }
+</style>

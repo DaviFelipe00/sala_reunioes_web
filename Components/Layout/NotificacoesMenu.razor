@@ -1,0 +1,71 @@
+@using MudBlazor
+
+@* Componente isolado de Notificações *@
+<MudBadge Content="_notificacoes.Count" Color="Color.Error" Overlap="true" Bordered="true" Visible="@(_notificacoes.Any())">
+    <MudIconButton Icon="@Icons.Material.Outlined.Notifications" 
+                   Color="Color.Inherit" 
+                   OnClick="ToggleNotificacoes" />
+</MudBadge>
+
+<MudPopover Open="_notificacaoOpen" 
+            AnchorOrigin="Origin.BottomRight" 
+            TransformOrigin="Origin.TopRight" 
+            Class="px-4 py-2" 
+            Style="width: 300px; max-height: 400px; overflow-y: auto;">
+    
+    <div class="d-flex justify-space-between align-center mb-2">
+        <MudText Typo="Typo.subtitle2" Class="fw-bold">Notificações</MudText>
+        @if (_notificacoes.Any())
+        {
+            <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small" OnClick="LimparNotificacoes">Limpar</MudButton>
+        }
+    </div>
+    
+    <MudDivider Class="mb-2"/>
+
+    @if (!_notificacoes.Any())
+    {
+        <div class="d-flex flex-column align-center justify-center py-4">
+            <MudIcon Icon="@Icons.Material.Outlined.NotificationsOff" Size="Size.Large" Color="Color.Default" Style="opacity: 0.5"/>
+            <MudText Typo="Typo.caption" Class="mt-2" Style="opacity: 0.7">Nenhuma notificação nova.</MudText>
+        </div>
+    }
+    else
+    {
+        <MudList T="string" Dense="true" Clickable="true">
+            @foreach (var notif in _notificacoes)
+            {
+                <MudListItem Icon="@Icons.Material.Filled.Circle" IconColor="Color.Info" IconSize="Size.Small">
+                    <div class="d-flex flex-column">
+                        <MudText Typo="Typo.body2" Class="fw-bold">@notif.Titulo</MudText>
+                        <MudText Typo="Typo.caption">@notif.Descricao</MudText>
+                        <MudText Typo="Typo.caption" Style="font-size: 0.65rem; color: gray;">@notif.TempoAtras</MudText>
+                    </div>
+                </MudListItem>
+                <MudDivider />
+            }
+        </MudList>
+    }
+</MudPopover>
+
+@code {
+    bool _notificacaoOpen = false;
+
+    public class NotificacaoItem 
+    {
+        public string Titulo { get; set; } = "";
+        public string Descricao { get; set; } = "";
+        public string TempoAtras { get; set; } = "";
+    }
+
+    private List<NotificacaoItem> _notificacoes = new()
+    {
+        new NotificacaoItem { Titulo = "Reunião Confirmada", Descricao = "Sala de Vidro reservada com sucesso.", TempoAtras = "2 min atrás" },
+        new NotificacaoItem { Titulo = "Lembrete", Descricao = "Reunião de Staff às 14h.", TempoAtras = "1 hora atrás" },
+        new NotificacaoItem { Titulo = "Manutenção", Descricao = "Ar condicionado da Sala 02 em reparo.", TempoAtras = "Ontem" }
+    };
+
+    void ToggleNotificacoes() => _notificacaoOpen = !_notificacaoOpen;
+
+    void LimparNotificacoes() => _notificacoes.Clear();
+}

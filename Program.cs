@@ -9,9 +9,11 @@ using SalaReunioes.Web.Infrastructure.Hubs;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// 1. Configuração do Banco de Dados (PostgreSQL)
+// 1. Configuração do Banco de Dados (COM FACTORY)
+// Alterado para AddDbContextFactory para suportar concorrência no Blazor Server
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-builder.Services.AddDbContext<AppDbContext>(options =>
+
+builder.Services.AddDbContextFactory<AppDbContext>(options =>
     options.UseNpgsql(connectionString));
 
 // 2. Configuração do ASP.NET Core Identity
@@ -41,6 +43,7 @@ builder.Services.AddMudServices();
 builder.Services.AddSignalR();
 
 // 5. Serviços de Negócio
+// Mantemos Scoped pois o serviço agora usa a Factory internamente
 builder.Services.AddScoped<AgendamentoService>();
 
 // 6. Configurar componentes Blazor
@@ -52,6 +55,7 @@ var app = builder.Build();
 // --- Inicialização de Dados (Seed) ---
 using (var scope = app.Services.CreateScope())
 {
+    // O Seed precisa de um DbContext normal, que a Factory também disponibiliza via Scoped
     await DbInitializer.SeedAdminUser(scope.ServiceProvider);
 }
 
@@ -73,7 +77,7 @@ app.UseAuthorization();
 
 // --- Endpoints de Autenticação (Necessários para Blazor Server) ---
 
-// Endpoint de Login: Resolvido o problema de AntiforgeryValidationException
+// Endpoint de Login
 app.MapPost("Account/Login", async (
     [FromForm] string UserName, 
     [FromForm] string Password, 
@@ -83,12 +87,13 @@ app.MapPost("Account/Login", async (
     
     if (result.Succeeded)
     {
-        return Results.Redirect("/admin/salas");
+        // Redireciona para o dashboard administrativo após login
+        return Results.Redirect("/");
     }
     
     return Results.Redirect("/login?error=1");
 })
-.DisableAntiforgery(); // Desabilita a validação para evitar erro de token mismatch no login
+.DisableAntiforgery();
 
 // Endpoint de Logout
 app.MapPost("Account/Logout", async (SignInManager<IdentityUser> signInManager) =>
