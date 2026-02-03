@@ -2,14 +2,18 @@
 @using SalaReunioes.Web.Domain.Entities
 @using SalaReunioes.Web.Infrastructure.Services
 @using Heron.MudCalendar
+@using Microsoft.AspNetCore.SignalR.Client
+@implements IAsyncDisposable
 @inject AgendamentoService Service
 @inject NavigationManager Navigation
+@inject IDialogService DialogService
+
+@rendermode InteractiveServer
 
 <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-6">
     <MudText Typo="Typo.h4" Color="Color.Primary" Class="mb-4 fw-bold">Calendário de Reuniões</MudText>
 
     <MudPaper Elevation="4" Class="pa-4">
-        @* MudCalendar suporta nativamente visualização de Dia, Semana e Mês *@
         <MudCalendar Items="_events"
                      Color="Color.Primary"
                      View="CalendarView.Month"
@@ -17,9 +21,22 @@
                      Style="height: 800px;"
                      OnItemClick="VerDetalhes">
             <CellTemplate Context="item">
-                <div class="pa-1" style="background-color: var(--mud-palette-primary-lighten); border-radius: 4px;">
-                    <MudText Typo="Typo.caption" Class="fw-bold">
-                        @((item as CustomCalendarItem)?.NomeSala): @item.Text
+                @* Convertemos o contexto para nosso tipo customizado *@
+                @{ var evento = item as CustomCalendarItem; }
+                
+                @* USO DA NOVA COR: 
+                   - style="background-color: @evento?.CorHex" aplica a cor aleatória no fundo.
+                   - A classe "evento-calendario-texto-branco" garante que o texto seja legível.
+                *@
+                <div class="pa-1 d-flex flex-column evento-calendario-texto-branco" 
+                     style="background-color: @(evento?.CorHex ?? "#1976D2"); border-radius: 4px; overflow: hidden; height: 100%;">
+                    
+                    <MudText Typo="Typo.caption" Class="fw-bold text-truncate" Style="color: white !important;">
+                        @(evento?.NomeSala ?? "Sala")
+                    </MudText>
+                    
+                    <MudText Typo="Typo.caption" Style="font-size: 0.7rem; color: white !important; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                        @item.Text
                     </MudText>
                 </div>
             </CellTemplate>
@@ -27,39 +44,73 @@
     </MudPaper>
 </MudContainer>
 
+@* CSS Adicional para garantir que o texto fique branco *@
+<style>
+    .evento-calendario-texto-branco .mud-typography {
+        color: white !important;
+    }
+</style>
+
 @code {
     private List<CustomCalendarItem> _events = new();
+    private HubConnection? hubConnection;
+    // Gerador de números aleatórios para as cores
+    private readonly Random _random = new Random();
+
+    // [NOVA FUNÇÃO] Gera uma cor hexadecimal aleatória
+    private string GerarCorAleatoria()
+    {
+        // Gera valores R, G, B entre 0 e 200 para evitar cores muito claras (que ficariam ruins com texto branco)
+        var r = _random.Next(0, 200);
+        var g = _random.Next(0, 200);
+        var b = _random.Next(0, 200);
+        
+        // Formata como string hexadecimal (ex: #A32B4F)
+        return $"#{r:X2}{g:X2}{b:X2}";
+    }
 
     protected override async Task OnInitializedAsync()
     {
         await CarregarCalendario();
+        // (O código do SignalR permanece igual ao anterior...)
+        try {
+            hubConnection = new HubConnectionBuilder().WithUrl(Navigation.ToAbsoluteUri("/agendamentoHub")).WithAutomaticReconnect().Build();
+            hubConnection.On("ReceberAtualizacao", async () => { await CarregarCalendario(); await InvokeAsync(StateHasChanged); });
+            await hubConnection.StartAsync();
+        } catch { /* Tratamento de erro */ }
     }
 
     private async Task CarregarCalendario()
     {
-        // Busca todas as salas e seus agendamentos via Service
-        var salas = await Service.ListarSalasComAgendamentosAsync();
+        var agendamentos = await Service.ListarAgendamentosCalendarioAsync();
         _events.Clear();
 
-        foreach (var sala in salas)
+        foreach (var agendamento in agendamentos)
         {
-            foreach (var agendamento in sala.Agendamentos)
+            if (agendamento.Sala == null) continue;
+
+            _events.Add(new CustomCalendarItem
             {
-                _events.Add(new CustomCalendarItem
-                {
-                    Start = agendamento.Inicio.ToLocalTime(),
-                    End = agendamento.Fim.ToLocalTime(),
-                    Text = agendamento.Titulo,
-                    NomeSala = sala.Nome,
-                    // Atribui uma cor baseada na lógica de negócio ou ID da sala
-                    SalaColor = Color.Info 
-                });
-            }
+                Start = agendamento.Inicio.ToLocalTime(),
+                End = agendamento.Fim.ToLocalTime(),
+                Text = agendamento.Titulo,
+                NomeSala = agendamento.Sala.Nome,
+                SalaColor = Color.Info,
+                // [USO DA NOVA FUNÇÃO] Atribui uma cor única para este evento
+                CorHex = GerarCorAleatoria() 
+            });
         }
+        StateHasChanged();
     }
 
     private void VerDetalhes(CalendarItem item)
     {
-        // Lógica para abrir o modal de detalhes, similar à Home.razor
+        // (O código do VerDetalhes permanece igual ao anterior...)
+         if (item is CustomCalendarItem evento) { DialogService.ShowMessageBox(title: evento.Text, markupMessage: new MarkupString($"<b>Sala:</b> {evento.NomeSala}<br/><b>Início:</b> {evento.Start:dd/MM/yyyy HH:mm}<br/><b>Fim:</b> {evento.End:dd/MM/yyyy HH:mm}<br/>"), yesText: "Fechar"); }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (hubConnection is not null) await hubConnection.DisposeAsync();
     }
 }

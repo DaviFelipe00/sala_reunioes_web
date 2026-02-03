@@ -21,6 +21,7 @@ public class AgendamentoService(AppDbContext context, IHubContext<AgendamentoHub
     // SEÇÃO DE AGENDAMENTOS (DASHBOARD & CALENDÁRIO)
     // ==========================================
 
+    // Método otimizado para a HOME (Apenas Futuros)
     public async Task<List<Sala>> ListarSalasComAgendamentosAsync()
     {
         // Obtém o início do dia atual no fuso de Brasília e converte para UTC para o banco
@@ -31,6 +32,15 @@ public class AgendamentoService(AppDbContext context, IHubContext<AgendamentoHub
             .Include(s => s.Agendamentos
                 .Where(a => a.Inicio >= hojeUtc))
             .OrderBy(s => s.Nome)
+            .ToListAsync();
+    }
+
+    // [NOVO] Método específico para o CALENDÁRIO (Traz tudo + Nome da Sala)
+    public async Task<List<Agendamento>> ListarAgendamentosCalendarioAsync()
+    {
+        return await context.Agendamentos
+            .Include(a => a.Sala) // Fundamental para o calendário saber de qual sala é a reunião
+            .OrderBy(a => a.Inicio)
             .ToListAsync();
     }
 
@@ -89,9 +99,9 @@ public class AgendamentoService(AppDbContext context, IHubContext<AgendamentoHub
 
             return (true, "Agendamento realizado com sucesso!");
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            // Em produção, aqui entraria um log (ex: Serilog) registrando o ex.Message
+            // Em produção, aqui entraria um log (ex: Serilog)
             return (false, "Erro técnico ao salvar no banco de dados.");
         }
     }
