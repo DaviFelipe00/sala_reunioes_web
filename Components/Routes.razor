@@ -1,46 +1,50 @@
 ﻿@using Microsoft.AspNetCore.Components.Authorization
+@using SalaReunioes.Web.Components.Layout
+@inject NavigationManager Navigation
 
-@* CascadingAuthenticationState provê o estado de login para todos os componentes filhos *@
+@* 1. A SOLUÇÃO DO PROBLEMA: Definimos a interatividade global aqui *@
+@rendermode InteractiveServer
+
 <CascadingAuthenticationState>
     <Router AppAssembly="typeof(Program).Assembly">
         <Found Context="routeData">
-            @* AuthorizeRouteView verifica se a página exige [Authorize] *@
-            <AuthorizeRouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)">
-                
-                @* Conteúdo exibido se o usuário NÃO estiver logado e tentar acessar área restrita *@
+            <AuthorizeRouteView RouteData="routeData" DefaultLayout="typeof(MainLayout)">
                 <NotAuthorized>
-                    @if (!context.User.Identity?.IsAuthenticated ?? false)
+                    @if (context.User.Identity?.IsAuthenticated != true)
                     {
-                        @* Redirecionamento forçado para a página de login *@
-                        <script>window.location.href = '/login';</script>
-                        <MudAlert Severity="Severity.Info">Redirecionando para o login...</MudAlert>
+                        @* Melhor Prática: Componente dedicado para redirecionar *@
+                        <RedirectToLogin />
                     }
                     else
                     {
-                        <MudAlert Severity="Severity.Error">Você não tem permissão para acessar este recurso.</MudAlert>
+                        <MudContainer MaxWidth="MaxWidth.Small" Class="mt-16">
+                            <MudAlert Severity="Severity.Error" Variant="Variant.Filled" Class="my-2">
+                                Acesso Negado: Você não tem permissão para acessar este recurso.
+                            </MudAlert>
+                            <MudButton Variant="Variant.Text" Color="Color.Primary" Href="/" StartIcon="@Icons.Material.Filled.ArrowBack">
+                                Voltar ao Início
+                            </MudButton>
+                        </MudContainer>
                     }
                 </NotAuthorized>
-
-                @* Conteúdo exibido enquanto o sistema verifica o cookie de autenticação *@
                 <Authorizing>
-                    <div class="d-flex flex-column align-center justify-center mt-16">
-                        <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
-                        <MudText Class="mt-4">Verificando credenciais...</MudText>
+                    <div class="d-flex flex-column align-center justify-center mt-16" style="height:50vh">
+                        <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Large" />
+                        <MudText Class="mt-4" Typo="Typo.h6">Verificando credenciais...</MudText>
                     </div>
                 </Authorizing>
-
             </AuthorizeRouteView>
             <FocusOnNavigate RouteData="routeData" Selector="h1" />
         </Found>
 
-        @* Configuração para quando o usuário digita uma URL que não existe *@
         <NotFound>
             <PageTitle>Não Encontrado</PageTitle>
-            <LayoutView Layout="typeof(Layout.MainLayout)">
-                <MudContainer MaxWidth="MaxWidth.Medium" Class="mt-16 text-center">
-                    <MudText Typo="Typo.h3" Color="Color.Error" GutterBottom="true">404</MudText>
-                    <MudText Typo="Typo.h5">Ops! Esta página não existe.</MudText>
-                    <MudButton Variant="Variant.Filled" Color="Color.Primary" href="/" Class="mt-6">
+            <LayoutView Layout="typeof(MainLayout)">
+                <MudContainer MaxWidth="MaxWidth.Medium" Class="d-flex flex-column align-center justify-center mt-16">
+                    <MudIcon Icon="@Icons.Material.Filled.SentimentDissatisfied" Size="Size.Large" Color="Color.Error" Class="mb-4" style="font-size: 4rem;" />
+                    <MudText Typo="Typo.h3" Color="Color.Error" Class="fw-bold mb-2">404</MudText>
+                    <MudText Typo="Typo.h5" Class="mb-6">Ops! Página não encontrada.</MudText>
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="/" Size="Size.Large" Class="rounded-pill px-6">
                         Voltar para o Início
                     </MudButton>
                 </MudContainer>
@@ -48,3 +52,17 @@
         </NotFound>
     </Router>
 </CascadingAuthenticationState>
+
+@code {
+    // Pequeno componente interno para lidar com o redirecionamento de forma limpa no Blazor
+    private class RedirectToLogin : ComponentBase
+    {
+        [Inject] NavigationManager Navigation { get; set; } = default!;
+
+        protected override void OnInitialized()
+        {
+            // O parâmetro forceLoad: true garante que o cookie de auth seja reavaliado corretamente
+            Navigation.NavigateTo("/login", forceLoad: true);
+        }
+    }
+}

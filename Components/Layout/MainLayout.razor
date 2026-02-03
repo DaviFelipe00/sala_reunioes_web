@@ -1,16 +1,19 @@
 ﻿@inherits LayoutComponentBase
 
+@* 1. Definimos o modo de renderização para que eventos como 'DrawerToggle' funcionem *@
+@rendermode InteractiveServer
+
 <MudThemeProvider Theme="_currentTheme" />
 <MudPopoverProvider />
 <MudDialogProvider />
 <MudSnackbarProvider />
 
 <MudLayout>
-    @* Fixed="true" garante que o header fique no topo, e o MudMainContent compensa o espaço *@
     <MudAppBar Elevation="1" Color="Color.Primary" Fixed="true">
         <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@((e) => DrawerToggle())" />
         
         <div class="d-flex align-center ml-2">
+            @* Certifique-se de que a imagem está em wwwroot/rioave.png *@
             <img src="rioave.png" alt="Rio Ave" style="height:32px;" class="mr-3" />
         </div>
 
@@ -18,6 +21,7 @@
         
         <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
             <MudIconButton Icon="@Icons.Material.Outlined.Notifications" Color="Color.Inherit" />
+            
             <MudMenu AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight" Dense="true">
                 <ActivatorContent>
                     <MudAvatar Color="Color.Secondary" Variant="Variant.Filled" Style="cursor:pointer">D</MudAvatar>
@@ -25,12 +29,15 @@
                 <ChildContent>
                     <MudMenuItem Href="/perfil" Icon="@Icons.Material.Filled.Person">Meu Perfil</MudMenuItem>
                     <MudDivider />
+                    @* 2. Ajuste no Logout: O formulário precisa ser estilizado para não quebrar o layout do menu *@
                     <MudMenuItem>
-                        <form action="Account/Logout" method="post">
+                        <form action="Account/Logout" method="post" style="width: 100%;">
                             <AntiforgeryToken />
-                            <button type="submit" class="logout-button">
-                                <MudIcon Icon="@Icons.Material.Filled.Logout" Size="Size.Small" Class="mr-3" />
-                                <MudText Typo="Typo.body2">Sair</MudText>
+                            <button type="submit" class="logout-button-reset">
+                                <div class="d-flex align-center">
+                                    <MudIcon Icon="@Icons.Material.Filled.Logout" Size="Size.Small" Class="mr-3" />
+                                    <MudText Typo="Typo.body2">Sair</MudText>
+                                </div>
                             </button>
                         </form>
                     </MudMenuItem>
@@ -47,7 +54,6 @@
         </MudNavMenu>
     </MudDrawer>
 
-    @* O segredo do enquadramento está aqui *@
     <MudMainContent>
         <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="pt-6">
             @Body
@@ -55,19 +61,40 @@
     </MudMainContent>
 </MudLayout>
 
+<style>
+    /* 3. CSS para o botão de logout parecer um item de menu normal */
+    .logout-button-reset {
+        background: none;
+        border: none;
+        padding: 0;
+        margin: 0;
+        width: 100%;
+        text-align: left;
+        color: inherit;
+        font: inherit;
+        cursor: pointer;
+        display: block;
+    }
+
+    .logout-button-reset:hover {
+        background-color: rgba(0, 0, 0, 0.05);
+    }
+</style>
+
 @code {
     bool _drawerOpen = true;
 
-    // Configuração do Tema para Azul Escuro
+    // Configuração do Tema Azul Rio Ave
     private MudTheme _currentTheme = new MudTheme()
     {
         PaletteLight = new PaletteLight()
         {
-            Primary = "#002147", // Azul Escuro (Oxford Blue)
+            Primary = "#002147", 
             Secondary = "#00509d",
             AppbarBackground = "#002147",
             DrawerBackground = "#001529",
-            Background = "#F4F7F9"
+            Background = "#F4F7F9",
+            ActionDefault = "#002147"
         }
     };
 
