@@ -12,6 +12,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbCo
     public DbSet<Sala> Salas => Set<Sala>();
     public DbSet<Agendamento> Agendamentos => Set<Agendamento>();
 
+    public DbSet<ConfiguracaoSistema> Configuracoes { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         // OBRIGATÓRIO: Chama a configuração base do Identity para criar as tabelas de usuários e permissões

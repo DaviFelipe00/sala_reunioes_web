@@ -11,7 +11,17 @@
 @rendermode InteractiveServer
 
 <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-6">
-    <MudText Typo="Typo.h4" Color="Color.Primary" Class="mb-4 fw-bold">Calendário de Reuniões</MudText>
+    <div class="d-flex justify-space-between align-center mb-4">
+        <MudText Typo="Typo.h4" Color="Color.Primary" Class="fw-bold">Calendário de Reuniões</MudText>
+        
+        @* Legenda Rápida (Opcional - ajuda a entender as cores) *@
+        <MudStack Row="true" Spacing="2">
+            <MudText Typo="Typo.caption" Class="d-flex align-center">
+                <div style="width:12px; height:12px; background-color:#1565C0; margin-right:4px; border-radius:2px;"></div> Sala 1
+            </MudText>
+            @* Você pode gerar essa legenda dinamicamente se quiser *@
+        </MudStack>
+    </div>
 
     <MudPaper Elevation="4" Class="pa-4">
         <MudCalendar Items="_events"
@@ -21,63 +31,67 @@
                      Style="height: 800px;"
                      OnItemClick="VerDetalhes">
             <CellTemplate Context="item">
-                @* Convertemos o contexto para nosso tipo customizado *@
                 @{ var evento = item as CustomCalendarItem; }
                 
-                @* USO DA NOVA COR: 
-                   - style="background-color: @evento?.CorHex" aplica a cor aleatória no fundo.
-                   - A classe "evento-calendario-texto-branco" garante que o texto seja legível.
-                *@
-                <div class="pa-1 d-flex flex-column evento-calendario-texto-branco" 
-                     style="background-color: @(evento?.CorHex ?? "#1976D2"); border-radius: 4px; overflow: hidden; height: 100%;">
+                @* TOOLTIP: Mostra detalhes completos ao passar o mouse *@
+                <MudTooltip Text="@($"{evento?.NomeSala} | {evento?.Text} ({item.Start:HH:mm} - {item.End:HH:mm})")" 
+                            Arrow="true" Placement="Placement.Top">
                     
-                    <MudText Typo="Typo.caption" Class="fw-bold text-truncate" Style="color: white !important;">
-                        @(evento?.NomeSala ?? "Sala")
-                    </MudText>
-                    
-                    <MudText Typo="Typo.caption" Style="font-size: 0.7rem; color: white !important; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                        @item.Text
-                    </MudText>
-                </div>
+                    @* CARD COMPACTO: Uma linha para economizar espaço *@
+                    <div class="d-flex align-center pa-1 mb-1 shadow-sm overflow-hidden" 
+                         style="background-color: @(evento?.CorHex); border-radius: 4px; border-left: 3px solid rgba(0,0,0,0.3); cursor: pointer;">
+                        
+                        @* Hora *@
+                        <MudText Typo="Typo.caption" Class="fw-bold mr-2" Style="color: white; font-size: 0.7rem; min-width: 35px;">
+                            @item.Start.ToString("HH:mm")
+                        </MudText>
+                        
+                        @* Título/Sala (Truncado para não quebrar linha) *@
+                        <MudText Typo="Typo.caption" Style="color: white; font-size: 0.7rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                            <span style="opacity: 0.8; margin-right: 4px;">@evento?.NomeSala:</span> @item.Text
+                        </MudText>
+                    </div>
+                </MudTooltip>
             </CellTemplate>
         </MudCalendar>
     </MudPaper>
 </MudContainer>
 
-@* CSS Adicional para garantir que o texto fique branco *@
-<style>
-    .evento-calendario-texto-branco .mud-typography {
-        color: white !important;
-    }
-</style>
-
 @code {
     private List<CustomCalendarItem> _events = new();
     private HubConnection? hubConnection;
-    // Gerador de números aleatórios para as cores
-    private readonly Random _random = new Random();
 
-    // [NOVA FUNÇÃO] Gera uma cor hexadecimal aleatória
-    private string GerarCorAleatoria()
+    // Paleta de cores "Material Design" (Escuras para texto branco)
+    private readonly string[] _paletaCores = new[] 
+    { 
+        "#1565C0", // Azul
+        "#C62828", // Vermelho
+        "#2E7D32", // Verde
+        "#AD1457", // Rosa
+        "#EF6C00", // Laranja
+        "#4527A0", // Roxo
+        "#00695C", // Verde Azulado
+        "#4E342E"  // Marrom
+    };
+
+    // Gera uma cor fixa baseada no NOME da sala (não aleatória)
+    private string ObterCorPorSala(string nomeSala)
     {
-        // Gera valores R, G, B entre 0 e 200 para evitar cores muito claras (que ficariam ruins com texto branco)
-        var r = _random.Next(0, 200);
-        var g = _random.Next(0, 200);
-        var b = _random.Next(0, 200);
+        if (string.IsNullOrEmpty(nomeSala)) return _paletaCores[0];
         
-        // Formata como string hexadecimal (ex: #A32B4F)
-        return $"#{r:X2}{g:X2}{b:X2}";
+        // O HashCode garante que a mesma sala sempre pegue a mesma cor
+        int index = Math.Abs(nomeSala.GetHashCode()) % _paletaCores.Length;
+        return _paletaCores[index];
     }
 
     protected override async Task OnInitializedAsync()
     {
         await CarregarCalendario();
-        // (O código do SignalR permanece igual ao anterior...)
         try {
             hubConnection = new HubConnectionBuilder().WithUrl(Navigation.ToAbsoluteUri("/agendamentoHub")).WithAutomaticReconnect().Build();
             hubConnection.On("ReceberAtualizacao", async () => { await CarregarCalendario(); await InvokeAsync(StateHasChanged); });
             await hubConnection.StartAsync();
-        } catch { /* Tratamento de erro */ }
+        } catch { /* Ignora erro de conexão */ }
     }
 
     private async Task CarregarCalendario()
@@ -89,15 +103,17 @@
         {
             if (agendamento.Sala == null) continue;
 
+            // Usa a lógica de cor consistente
+            var corSala = ObterCorPorSala(agendamento.Sala.Nome);
+
             _events.Add(new CustomCalendarItem
             {
                 Start = agendamento.Inicio.ToLocalTime(),
                 End = agendamento.Fim.ToLocalTime(),
                 Text = agendamento.Titulo,
                 NomeSala = agendamento.Sala.Nome,
-                SalaColor = Color.Info,
-                // [USO DA NOVA FUNÇÃO] Atribui uma cor única para este evento
-                CorHex = GerarCorAleatoria() 
+                SalaColor = Color.Info, // Fallback
+                CorHex = corSala 
             });
         }
         StateHasChanged();
@@ -105,8 +121,16 @@
 
     private void VerDetalhes(CalendarItem item)
     {
-        // (O código do VerDetalhes permanece igual ao anterior...)
-         if (item is CustomCalendarItem evento) { DialogService.ShowMessageBox(title: evento.Text, markupMessage: new MarkupString($"<b>Sala:</b> {evento.NomeSala}<br/><b>Início:</b> {evento.Start:dd/MM/yyyy HH:mm}<br/><b>Fim:</b> {evento.End:dd/MM/yyyy HH:mm}<br/>"), yesText: "Fechar"); }
+         if (item is CustomCalendarItem evento) 
+         { 
+             DialogService.ShowMessageBox(
+                 title: evento.Text, 
+                 markupMessage: new MarkupString(
+                     $"<b>Sala:</b> {evento.NomeSala}<br/>" +
+                     $"<b>Horário:</b> {evento.Start:HH:mm} - {evento.End:HH:mm}<br/>" +
+                     $"<b>Data:</b> {evento.Start:dd/MM/yyyy}"), 
+                 yesText: "Fechar"); 
+         }
     }
 
     public async ValueTask DisposeAsync()

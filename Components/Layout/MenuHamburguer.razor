@@ -1,0 +1,33 @@
+@using MudBlazor
+
+@* Botão de Menu Animado 
+    - Recebe o estado atual (IsOpen)
+    - Notifica o pai quando clicado (OnClick)
+*@
+<MudIconButton Icon="@(IsOpen ? Icons.Material.Filled.MenuOpen : Icons.Material.Filled.Menu)" 
+               Color="Color.Inherit" 
+               Edge="Edge.Start" 
+               OnClick="AlternarMenu"
+               Style="@EstiloRotacao"
+               Title="@(IsOpen ? "Fechar Menu" : "Abrir Menu")" />
+
+@code {
+    // Parâmetro para saber se o Drawer está aberto ou fechado
+    [Parameter] public bool IsOpen { get; set; }
+
+    // Callback para avisar o Layout que o botão foi clicado
+    [Parameter] public EventCallback OnClick { get; set; }
+
+    // Propriedade computada para aplicar a rotação CSS apenas quando necessário
+    private string EstiloRotacao => 
+        $"transform: {(IsOpen ? "rotate(180deg)" : "rotate(0deg)")}; " +
+        "transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);";
+
+    private async Task AlternarMenu()
+    {
+        if (OnClick.HasDelegate)
+        {
+            await OnClick.InvokeAsync();
+        }
+    }
+}

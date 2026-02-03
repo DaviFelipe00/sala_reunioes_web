@@ -6,23 +6,39 @@ using SalaReunioes.Web.Infrastructure.Hubs;
 
 namespace SalaReunioes.Web.Infrastructure.Services;
 
-// 1. Injetamos o IDbContextFactory em vez do AppDbContext direto
 public class AgendamentoService(IDbContextFactory<AppDbContext> dbFactory, IHubContext<AgendamentoHub> hubContext)
 {
     private static readonly TimeZoneInfo BrasiliaTimeZone = 
         TimeZoneInfo.FindSystemTimeZoneById("E. South America Standard Time");
 
     private const int DuracaoMaximaHoras = 4;
-    private const int HoraInicioComercial = 8;
-    private const int HoraFimComercial = 19;
+    // Removido: Constantes de horário fixo (Agora vêm do banco)
 
     // ==========================================
-    // SEÇÃO DE LEITURA (DASHBOARD & CALENDÁRIO)
+    // SEÇÃO DE CONFIGURAÇÃO (NOVO)
+    // ==========================================
+
+    public async Task<ConfiguracaoSistema> ObterConfiguracaoAsync()
+    {
+        using var context = dbFactory.CreateDbContext();
+        // Retorna a configuração do banco ou cria uma padrão na memória se falhar
+        return await context.Configuracoes.FirstOrDefaultAsync() 
+               ?? new ConfiguracaoSistema { HoraAbertura = 8, HoraFechamento = 18 };
+    }
+
+    public async Task AtualizarConfiguracaoAsync(ConfiguracaoSistema config)
+    {
+        using var context = dbFactory.CreateDbContext();
+        context.Configuracoes.Update(config);
+        await context.SaveChangesAsync();
+    }
+
+    // ==========================================
+    // SEÇÃO DE LEITURA
     // ==========================================
 
     public async Task<List<Sala>> ListarSalasComAgendamentosAsync()
     {
-        // 2. O padrão "using" garante que a conexão fecha logo após o return
         using var context = dbFactory.CreateDbContext();
 
         var agoraBrasilia = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, BrasiliaTimeZone);
@@ -63,14 +79,13 @@ public class AgendamentoService(IDbContextFactory<AppDbContext> dbFactory, IHubC
 
     public async Task<(bool Sucesso, string Mensagem)> ReservarAsync(Agendamento novo)
     {
-        // Criamos um contexto isolado apenas para esta transação
         using var context = dbFactory.CreateDbContext();
 
-        // 1. Normalização
+        // 1. Normalização de Datas
         novo.Inicio = DateTime.SpecifyKind(novo.Inicio, DateTimeKind.Utc);
         novo.Fim = DateTime.SpecifyKind(novo.Fim, DateTimeKind.Utc);
 
-        // 2. Validações de Regra de Negócio (Sem acesso ao banco)
+        // 2. Validações Básicas
         if (novo.Inicio >= novo.Fim)
             return (false, "A hora de início deve ser anterior à hora de fim.");
 
@@ -81,13 +96,22 @@ public class AgendamentoService(IDbContextFactory<AppDbContext> dbFactory, IHubC
         if (duracao.TotalHours > DuracaoMaximaHoras)
             return (false, $"A reserva não pode exceder {DuracaoMaximaHoras} horas.");
 
+        // 3. Validação de Horário Dinâmico (Busca do Banco)
+        var config = await context.Configuracoes.FirstOrDefaultAsync() 
+                     ?? new ConfiguracaoSistema { HoraAbertura = 8, HoraFechamento = 18 };
+
         var inicioBr = TimeZoneInfo.ConvertTimeFromUtc(novo.Inicio, BrasiliaTimeZone);
         var fimBr = TimeZoneInfo.ConvertTimeFromUtc(novo.Fim, BrasiliaTimeZone);
 
-        if (inicioBr.Hour < HoraInicioComercial || fimBr.Hour > HoraFimComercial || (fimBr.Hour == HoraFimComercial && fimBr.Minute > 0))
-            return (false, $"As reservas devem ser feitas entre {HoraInicioComercial:D2}:00 e {HoraFimComercial:D2}:00.");
+        // Regra: Verifica se está DENTRO do intervalo configurado
+        if (inicioBr.Hour < config.HoraAbertura || 
+            fimBr.Hour > config.HoraFechamento || 
+            (fimBr.Hour == config.HoraFechamento && fimBr.Minute > 0))
+        {
+            return (false, $"As reservas devem ser feitas entre {config.HoraAbertura:D2}:00 e {config.HoraFechamento:D2}:00.");
+        }
 
-        // 3. Verificação de Conflitos (Acesso ao banco)
+        // 4. Verificação de Conflitos
         var conflito = await context.Agendamentos
             .AnyAsync(a => a.SalaId == novo.SalaId && 
                            a.Inicio < novo.Fim && 
@@ -101,14 +125,12 @@ public class AgendamentoService(IDbContextFactory<AppDbContext> dbFactory, IHubC
             context.Agendamentos.Add(novo);
             await context.SaveChangesAsync();
 
-            // Notifica via SignalR (fora do contexto do banco)
             await hubContext.Clients.All.SendAsync("ReceberAtualizacao");
 
             return (true, "Agendamento realizado com sucesso!");
         }
         catch (Exception ex)
         {
-            // Logar o erro real no console para debug
             Console.WriteLine($"Erro ao reservar: {ex.Message}");
             return (false, "Erro técnico ao salvar no banco de dados.");
         }

@@ -1,0 +1,66 @@
+@page "/admin/configuracoes"
+@using Microsoft.AspNetCore.Authorization
+@using SalaReunioes.Web.Domain.Entities
+@using SalaReunioes.Web.Infrastructure.Services
+@attribute [Authorize]
+@inject AgendamentoService Service
+@inject ISnackbar Snackbar
+
+<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-8">
+    <MudPaper Class="pa-6">
+        <MudText Typo="Typo.h5" Class="mb-4 fw-bold text-primary">Regras de Negócio</MudText>
+        <MudText Typo="Typo.body2" Class="mb-6">Defina o horário de funcionamento para agendamentos.</MudText>
+
+        @if (_config == null)
+        {
+            <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+        }
+        else
+        {
+            <MudForm>
+                <div class="d-flex gap-4">
+                    <MudNumericField @bind-Value="_config.HoraAbertura" 
+                                     Label="Horário de Abertura" 
+                                     Variant="Variant.Outlined" 
+                                     Min="0" Max="23" 
+                                     Adornment="Adornment.End" AdornmentText="h" />
+
+                    <MudNumericField @bind-Value="_config.HoraFechamento" 
+                                     Label="Horário de Fechamento" 
+                                     Variant="Variant.Outlined" 
+                                     Min="0" Max="23" 
+                                     Adornment="Adornment.End" AdornmentText="h" />
+                </div>
+
+                <MudButton Variant="Variant.Filled" 
+                           Color="Color.Primary" 
+                           Class="mt-6" 
+                           OnClick="Salvar"
+                           StartIcon="@Icons.Material.Filled.Save">
+                    Salvar Alterações
+                </MudButton>
+            </MudForm>
+        }
+    </MudPaper>
+</MudContainer>
+
+@code {
+    private ConfiguracaoSistema? _config;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _config = await Service.ObterConfiguracaoAsync();
+    }
+
+    private async Task Salvar()
+    {
+        if (_config!.HoraAbertura >= _config.HoraFechamento)
+        {
+            Snackbar.Add("O horário de abertura deve ser menor que o fechamento.", Severity.Warning);
+            return;
+        }
+
+        await Service.AtualizarConfiguracaoAsync(_config);
+        Snackbar.Add("Regras atualizadas com sucesso!", Severity.Success);
+    }
+}

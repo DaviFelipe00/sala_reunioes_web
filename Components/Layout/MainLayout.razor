@@ -8,10 +8,11 @@
 
 <MudLayout>
     <MudAppBar Elevation="1" Color="Color.Primary" Fixed="true">
-        @* Botão para abrir/fechar o menu lateral *@
-        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@((e) => DrawerToggle())" />
         
-        @* Logo *@
+        @* --- NOVO COMPONENTE: Botão de Menu Animado --- *@
+        <MenuHamburguer IsOpen="_drawerOpen" OnClick="DrawerToggle" />
+        @* ---------------------------------------------- *@
+        
         <div class="d-flex align-center ml-2">
             <img src="rioave.png" alt="Rio Ave" style="height:32px;" class="mr-3" />
         </div>
@@ -19,16 +20,12 @@
         <MudSpacer />
         
         <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
-            @* 1. Componente de Notificações (Sino) *@
             <NotificacoesMenu />
-            
-            @* 2. Componente de Usuário (Avatar + Logout) *@
             <UserMenu />
         </MudStack>
     </MudAppBar>
 
     <MudDrawer @bind-Open="_drawerOpen" ClipMode="DrawerClipMode.Always" Elevation="2" Variant="@DrawerVariant.Responsive">
-        @* 3. Componente de Navegação Lateral *@
         <NavMenu />
     </MudDrawer>
 
@@ -42,7 +39,6 @@
 @code {
     bool _drawerOpen = true;
 
-    // Definição do Tema (Azul Escuro Rio Ave)
     private MudTheme _currentTheme = new MudTheme()
     {
         PaletteLight = new PaletteLight()
@@ -58,5 +54,6 @@
         }
     };
 
+    // Método que é chamado pelo evento OnClick do MenuHamburguer
     void DrawerToggle() => _drawerOpen = !_drawerOpen;
 }
