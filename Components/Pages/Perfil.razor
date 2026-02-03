@@ -1,0 +1,67 @@
+@page "/perfil"
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
+@inject AuthenticationStateProvider AuthStateProvider
+
+<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-8">
+    <MudText Typo="Typo.h4" Class="fw-bold mb-6" Color="Color.Primary">Meu Perfil</MudText>
+
+    <MudGrid>
+        @* Card Lateral: Avatar e Status *@
+        <MudItem xs="12" md="4">
+            <MudPaper Class="pa-6 d-flex flex-column align-center rounded-xl" Elevation="3">
+                <MudAvatar Color="Color.Primary" Style="height:120px; width:120px; font-size:3rem;" Class="mb-4">
+                    @(!string.IsNullOrEmpty(username) ? username.ToUpper().FirstOrDefault() : "?")
+                </MudAvatar>
+                <MudText Typo="Typo.h6">@username</MudText>
+                <MudText Typo="Typo.body2" Class="mud-text-secondary">Colaborador Rio Ave</MudText>
+                <MudChip T="string" Color="Color.Info" Size="Size.Small" Class="mt-2">Administrador</MudChip>
+            </MudPaper>
+        </MudItem>
+
+        @* Card Principal: Dados e Configurações *@
+        <MudItem xs="12" md="8">
+            <MudPaper Class="pa-6 rounded-xl" Elevation="3">
+                <MudText Typo="Typo.h6" Class="mb-4">Informações da Conta</MudText>
+                <MudStack Spacing="4">
+                    <MudTextField T="string" Value="@username" Label="Nome de Usuário" ReadOnly="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                    <MudTextField T="string" Value="@email" Label="E-mail Corporativo" ReadOnly="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                    
+                    <MudDivider Class="my-2" />
+                    
+                    <MudText Typo="Typo.subtitle2" Color="Color.Primary">Configurações de Fuso Horário</MudText>
+                    <MudAlert Severity="Severity.Info" Dense="true">
+                        Sua agenda está configurada para: <b>Brasília (GMT-3)</b>
+                    </MudAlert>
+                </MudStack>
+                
+                @* CORREÇÃO: Justify.FlexEnd em vez de Justify.End *@
+                <MudStack Row="true" Justify="Justify.FlexEnd" Class="mt-8">
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Save">
+                        Salvar Alterações
+                    </MudButton>
+                </MudStack>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+</MudContainer>
+
+@code {
+    private string? username;
+    private string? email;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity is { IsAuthenticated: true })
+        {
+            username = user.Identity.Name;
+            // Busca o e-mail nos claims ou gera um fallback seguro
+            email = user.FindFirst(c => c.Type == ClaimTypes.Email)?.Value 
+                    ?? user.FindFirst("email")?.Value 
+                    ?? $"{username?.Replace(" ", ".").ToLower()}@rioave.com.br";
+        }
+    }
+}

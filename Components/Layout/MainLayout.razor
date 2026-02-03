@@ -6,11 +6,12 @@
 <MudSnackbarProvider />
 
 <MudLayout>
-    @* BARRA SUPERIOR COM EFEITO DE TRANSPARÊNCIA (GLASSMORPISM) *@
+    @* --- BARRA SUPERIOR (APPBAR) --- *@
     <MudAppBar Elevation="0" Class="glass-effect" Fixed="true">
-        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Primary" Edge="Edge.Start" OnClick="@((e) => DrawerToggle())" Class="mr-4 d-md-none" />
+        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Primary" Edge="Edge.Start" 
+                       OnClick="@((e) => DrawerToggle())" Class="mr-4 d-md-none" />
         
-        @* Logo Rio Ave - Único elemento no topo para um visual clean *@
+        @* Logo Rio Ave *@
         <MudImage Src="rioave.png" Height="32" Alt="Rio Ave" Class="mr-3" />
         
         <MudSpacer />
@@ -19,11 +20,34 @@
             <MudTooltip Text="Notificações">
                 <MudIconButton Icon="@Icons.Material.Outlined.Notifications" Color="Color.Primary" />
             </MudTooltip>
-            <MudAvatar Color="Color.Primary" Variant="Variant.Filled" Class="ml-2" Style="width:35px; height:35px; cursor:pointer;">D</MudAvatar>
+
+            @* MENU DO USUÁRIO *@
+            <MudMenu AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight" Dense="true" Class="ml-2">
+                <ActivatorContent>
+                    <MudAvatar Color="Color.Primary" Variant="Variant.Filled" 
+                               Style="width:35px; height:35px; cursor:pointer;">D</MudAvatar>
+                </ActivatorContent>
+                <ChildContent>
+                    <MudMenuItem Icon="@Icons.Material.Filled.Person" href="/perfil">Meu Perfil</MudMenuItem>
+                    <MudDivider />
+                    @* O Logout no Identity exige um POST por segurança *@
+                    <MudMenuItem>
+                        <form action="Account/Logout" method="post" style="width: 100%;">
+                            <AntiforgeryToken />
+                            <input type="hidden" name="ReturnUrl" value="" />
+                            <button type="submit" class="d-flex align-center" 
+                                    style="background: none; border: none; width: 100%; color: var(--mud-palette-text-primary); cursor: pointer; padding: 0;">
+                                <MudIcon Icon="@Icons.Material.Filled.Logout" Size="Size.Small" Class="mr-2" />
+                                <MudText Typo="Typo.body2">Sair</MudText>
+                            </button>
+                        </form>
+                    </MudMenuItem>
+                </ChildContent>
+            </MudMenu>
         </div>
     </MudAppBar>
 
-    @* MENU LATERAL COM TRANSPARÊNCIA ESCURA *@
+    @* --- MENU LATERAL (DRAWER) --- *@
     <MudDrawer @bind-Open="_drawerOpen" 
                ClipMode="DrawerClipMode.Always" 
                Elevation="0" 
@@ -47,7 +71,7 @@
         </div>
     </MudDrawer>
 
-    @* ÁREA DE CONTEÚDO PRINCIPAL *@
+    @* --- ÁREA DE CONTEÚDO PRINCIPAL --- *@
     <MudMainContent Class="pt-16 px-4">
         <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
             @Body
@@ -65,8 +89,6 @@
         {
             Primary = "#003B5C",
             Secondary = "#007ACC",
-            // CORREÇÃO: Usamos um Hex válido aqui. 
-            // O CSS (.glass-effect) cuidará da transparência real usando !important.
             AppbarBackground = "#FFFFFF", 
             DrawerBackground = "#003B5C",
             TextPrimary = "#1A2C38",
