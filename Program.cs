@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Localization;
+using System.Globalization;
 using MudBlazor.Services;
 using SalaReunioes.Web.Components;
 using SalaReunioes.Web.Infrastructure.Data;
@@ -14,7 +16,6 @@ var builder = WebApplication.CreateBuilder(args);
 // ==========================================
 
 // Configuração do Banco de Dados (COM FACTORY)
-// Importante: No EasyPanel, isso lerá a variável de ambiente 'ConnectionStrings__DefaultConnection'
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
 builder.Services.AddDbContextFactory<AppDbContext>(options =>
@@ -56,9 +57,19 @@ builder.Services.AddRazorComponents()
 var app = builder.Build();
 
 // ==========================================
-// 2. Inicialização de Dados (MIGRATE + SEED)
+// 2. Configuração de Localização (PT-BR)
 // ==========================================
-// Esse bloco garante que o banco seja criado automaticamente no EasyPanel
+var supportedCultures = new[] { "pt-BR" };
+var localizationOptions = new RequestLocalizationOptions()
+    .SetDefaultCulture(supportedCultures[0])
+    .AddSupportedCultures(supportedCultures)
+    .AddSupportedUICultures(supportedCultures);
+
+app.UseRequestLocalization(localizationOptions);
+
+// ==========================================
+// 3. Inicialização de Dados (MIGRATE + SEED)
+// ==========================================
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
@@ -67,35 +78,29 @@ using (var scope = app.Services.CreateScope())
     try
     {
         logger.LogInformation("🚀 Inicializando migração do banco de dados...");
-
-        // Como usamos Factory, criamos um contexto temporário apenas para a migração
         var factory = services.GetRequiredService<IDbContextFactory<AppDbContext>>();
         using var context = factory.CreateDbContext();
 
-        // Aplica as migrações pendentes (cria tabelas se não existirem)
         await context.Database.MigrateAsync();
         logger.LogInformation("✅ Migração concluída com sucesso!");
 
-        // Executa o Seed de dados (Admin User)
         logger.LogInformation("🌱 Iniciando Seed de dados...");
         await DbInitializer.SeedAdminUser(services);
         logger.LogInformation("✅ Seed concluído.");
     }
     catch (Exception ex)
     {
-        // Esse erro aparecerá em VERMELHO nos logs do EasyPanel
         logger.LogError(ex, "🛑 ERRO CRÍTICO: Falha ao migrar ou inicializar o banco de dados.");
     }
 }
 
 // ==========================================
-// 3. Pipeline de Requisições HTTP
+// 4. Pipeline de Requisições HTTP
 // ==========================================
 
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
-    // Hsts adiciona segurança estrita de transporte (bom para produção)
     app.UseHsts();
 }
 
@@ -108,10 +113,10 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 // ==========================================
-// 4. Endpoints
+// 5. Endpoints
 // ==========================================
 
-// Endpoint de Login (Formulário tradicional para escrever o Cookie)
+// Endpoint de Login
 app.MapPost("Account/Login", async (
     [FromForm] string UserName, 
     [FromForm] string Password, 
@@ -126,7 +131,7 @@ app.MapPost("Account/Login", async (
     
     return Results.Redirect("/login?error=1");
 })
-.DisableAntiforgery(); // Cuidado em produção (revisar se o form envia o token)
+.DisableAntiforgery();
 
 // Endpoint de Logout
 app.MapPost("Account/Logout", async (SignInManager<IdentityUser> signInManager) =>
