@@ -9,14 +9,18 @@ using SalaReunioes.Web.Infrastructure.Hubs;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// 1. Configuração do Banco de Dados (COM FACTORY)
-// Alterado para AddDbContextFactory para suportar concorrência no Blazor Server
+// ==========================================
+// 1. Configuração de Serviços (DI)
+// ==========================================
+
+// Configuração do Banco de Dados (COM FACTORY)
+// Importante: No EasyPanel, isso lerá a variável de ambiente 'ConnectionStrings__DefaultConnection'
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
 builder.Services.AddDbContextFactory<AppDbContext>(options =>
     options.UseNpgsql(connectionString));
 
-// 2. Configuração do ASP.NET Core Identity
+// Configuração do ASP.NET Core Identity
 builder.Services.AddIdentityCore<IdentityUser>(options => {
     options.Password.RequireDigit = false;
     options.Password.RequiredLength = 6;
@@ -27,7 +31,7 @@ builder.Services.AddIdentityCore<IdentityUser>(options => {
 .AddEntityFrameworkStores<AppDbContext>()
 .AddSignInManager();
 
-// 3. Autenticação e Autorização
+// Autenticação e Autorização
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultScheme = IdentityConstants.ApplicationScheme;
@@ -38,46 +42,76 @@ builder.Services.AddAuthentication(options =>
 builder.Services.AddAuthorization();
 builder.Services.AddCascadingAuthenticationState(); 
 
-// 4. Interface e Real-time (SignalR e MudBlazor)
+// Interface e Real-time (SignalR e MudBlazor)
 builder.Services.AddMudServices();
 builder.Services.AddSignalR();
 
-// 5. Serviços de Negócio
-// Mantemos Scoped pois o serviço agora usa a Factory internamente
+// Serviços de Negócio
 builder.Services.AddScoped<AgendamentoService>();
 
-// 6. Configurar componentes Blazor
+// Componentes Blazor
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
 var app = builder.Build();
 
-// --- Inicialização de Dados (Seed) ---
+// ==========================================
+// 2. Inicialização de Dados (MIGRATE + SEED)
+// ==========================================
+// Esse bloco garante que o banco seja criado automaticamente no EasyPanel
 using (var scope = app.Services.CreateScope())
 {
-    // O Seed precisa de um DbContext normal, que a Factory também disponibiliza via Scoped
-    await DbInitializer.SeedAdminUser(scope.ServiceProvider);
+    var services = scope.ServiceProvider;
+    var logger = services.GetRequiredService<ILogger<Program>>();
+
+    try
+    {
+        logger.LogInformation("🚀 Inicializando migração do banco de dados...");
+
+        // Como usamos Factory, criamos um contexto temporário apenas para a migração
+        var factory = services.GetRequiredService<IDbContextFactory<AppDbContext>>();
+        using var context = factory.CreateDbContext();
+
+        // Aplica as migrações pendentes (cria tabelas se não existirem)
+        await context.Database.MigrateAsync();
+        logger.LogInformation("✅ Migração concluída com sucesso!");
+
+        // Executa o Seed de dados (Admin User)
+        logger.LogInformation("🌱 Iniciando Seed de dados...");
+        await DbInitializer.SeedAdminUser(services);
+        logger.LogInformation("✅ Seed concluído.");
+    }
+    catch (Exception ex)
+    {
+        // Esse erro aparecerá em VERMELHO nos logs do EasyPanel
+        logger.LogError(ex, "🛑 ERRO CRÍTICO: Falha ao migrar ou inicializar o banco de dados.");
+    }
 }
 
-// 7. Pipeline de requisições HTTP
+// ==========================================
+// 3. Pipeline de Requisições HTTP
+// ==========================================
+
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
+    // Hsts adiciona segurança estrita de transporte (bom para produção)
     app.UseHsts();
 }
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 
-// Ordem correta dos middlewares de segurança
+// Ordem crítica: Antiforgery -> AuthN -> AuthZ
 app.UseAntiforgery(); 
-
 app.UseAuthentication(); 
 app.UseAuthorization();
 
-// --- Endpoints de Autenticação (Necessários para Blazor Server) ---
+// ==========================================
+// 4. Endpoints
+// ==========================================
 
-// Endpoint de Login
+// Endpoint de Login (Formulário tradicional para escrever o Cookie)
 app.MapPost("Account/Login", async (
     [FromForm] string UserName, 
     [FromForm] string Password, 
@@ -87,13 +121,12 @@ app.MapPost("Account/Login", async (
     
     if (result.Succeeded)
     {
-        // Redireciona para o dashboard administrativo após login
         return Results.Redirect("/");
     }
     
     return Results.Redirect("/login?error=1");
 })
-.DisableAntiforgery();
+.DisableAntiforgery(); // Cuidado em produção (revisar se o form envia o token)
 
 // Endpoint de Logout
 app.MapPost("Account/Logout", async (SignInManager<IdentityUser> signInManager) =>
@@ -103,7 +136,7 @@ app.MapPost("Account/Logout", async (SignInManager<IdentityUser> signInManager) 
 })
 .DisableAntiforgery();
 
-// 8. Mapeamento de Hubs e Componentes
+// Hubs e Componentes Blazor
 app.MapHub<AgendamentoHub>("/agendamentoHub");
 
 app.MapRazorComponents<App>()
