@@ -12,23 +12,21 @@ public class AgendamentoService(IDbContextFactory<AppDbContext> dbFactory, IHubC
         TimeZoneInfo.FindSystemTimeZoneById("E. South America Standard Time");
 
     private const int DuracaoMaximaHoras = 4;
-    // Removido: Constantes de horário fixo (Agora vêm do banco)
 
     // ==========================================
-    // SEÇÃO DE CONFIGURAÇÃO (NOVO)
+    // SEÇÃO DE CONFIGURAÇÃO
     // ==========================================
 
     public async Task<ConfiguracaoSistema> ObterConfiguracaoAsync()
     {
-        using var context = dbFactory.CreateDbContext();
-        // Retorna a configuração do banco ou cria uma padrão na memória se falhar
+        using var context = await dbFactory.CreateDbContextAsync();
         return await context.Configuracoes.FirstOrDefaultAsync() 
-               ?? new ConfiguracaoSistema { HoraAbertura = 8, HoraFechamento = 18 };
+               ?? new ConfiguracaoSistema { HoraAbertura = 8, HoraFechamento = 19 };
     }
 
     public async Task AtualizarConfiguracaoAsync(ConfiguracaoSistema config)
     {
-        using var context = dbFactory.CreateDbContext();
+        using var context = await dbFactory.CreateDbContextAsync();
         context.Configuracoes.Update(config);
         await context.SaveChangesAsync();
     }
@@ -37,39 +35,45 @@ public class AgendamentoService(IDbContextFactory<AppDbContext> dbFactory, IHubC
     // SEÇÃO DE LEITURA
     // ==========================================
 
+    // NOVO MÉTODO: Essencial para o novo ReservaDialog (Grade de Horários)
+    public async Task<List<Agendamento>> ObterPorDataESalaAsync(DateTime dataLocal, int salaId)
+    {
+        using var context = await dbFactory.CreateDbContextAsync();
+
+        // 1. Define o início e fim do dia no TimeZone de Brasília
+        var dataBrasilia = new DateTime(dataLocal.Year, dataLocal.Month, dataLocal.Day);
+        var inicioDiaBr = TimeZoneInfo.ConvertTimeToUtc(dataBrasilia, BrasiliaTimeZone);
+        var fimDiaBr = TimeZoneInfo.ConvertTimeToUtc(dataBrasilia.AddDays(1).AddTicks(-1), BrasiliaTimeZone);
+
+        // 2. Busca agendamentos que colidem com esse dia
+        return await context.Agendamentos
+            .Where(a => a.SalaId == salaId && 
+                        a.DataInicio < fimDiaBr && 
+                        a.DataFim > inicioDiaBr)
+            .AsNoTracking() // Otimização de performance para leitura
+            .ToListAsync();
+    }
+
     public async Task<List<Sala>> ListarSalasComAgendamentosAsync()
     {
-        using var context = dbFactory.CreateDbContext();
+        using var context = await dbFactory.CreateDbContextAsync();
 
-        var agoraBrasilia = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, BrasiliaTimeZone);
-        var hojeUtc = TimeZoneInfo.ConvertTimeToUtc(agoraBrasilia.Date, BrasiliaTimeZone);
+        var agoraUtc = DateTime.UtcNow;
 
         return await context.Salas
-            .Include(s => s.Agendamentos.Where(a => a.Inicio >= hojeUtc))
+            .Include(s => s.Agendamentos.Where(a => a.DataInicio >= agoraUtc))
             .OrderBy(s => s.Nome)
+            .AsNoTracking()
             .ToListAsync();
     }
 
-    public async Task<List<Agendamento>> ListarAgendamentosCalendarioAsync()
+    public async Task<List<Agendamento>> ListarTodosAgendamentosAsync()
     {
-        using var context = dbFactory.CreateDbContext();
-
+        using var context = await dbFactory.CreateDbContextAsync();
         return await context.Agendamentos
             .Include(a => a.Sala)
-            .OrderBy(a => a.Inicio)
-            .ToListAsync();
-    }
-
-    public async Task<List<Agendamento>> ObterAgendamentosPorPeriodoAsync(DateTime inicio, DateTime fim)
-    {
-        using var context = dbFactory.CreateDbContext();
-
-        var inicioUtc = DateTime.SpecifyKind(inicio, DateTimeKind.Utc);
-        var fimUtc = DateTime.SpecifyKind(fim, DateTimeKind.Utc);
-
-        return await context.Agendamentos
-            .Where(a => a.Inicio >= inicioUtc && a.Inicio <= fimUtc)
-            .OrderBy(a => a.Inicio)
+            .OrderByDescending(a => a.DataInicio)
+            .AsNoTracking()
             .ToListAsync();
     }
 
@@ -79,52 +83,59 @@ public class AgendamentoService(IDbContextFactory<AppDbContext> dbFactory, IHubC
 
     public async Task<(bool Sucesso, string Mensagem)> ReservarAsync(Agendamento novo)
     {
-        using var context = dbFactory.CreateDbContext();
+        using var context = await dbFactory.CreateDbContextAsync();
 
-        // 1. Normalização de Datas
-        novo.Inicio = DateTime.SpecifyKind(novo.Inicio, DateTimeKind.Utc);
-        novo.Fim = DateTime.SpecifyKind(novo.Fim, DateTimeKind.Utc);
+        // 1. Normalização para UTC (Garante consistência no banco)
+        if (novo.DataInicio.Kind != DateTimeKind.Utc)
+            novo.DataInicio = novo.DataInicio.ToUniversalTime();
+        
+        if (novo.DataFim.Kind != DateTimeKind.Utc)
+            novo.DataFim = novo.DataFim.ToUniversalTime();
 
         // 2. Validações Básicas
-        if (novo.Inicio >= novo.Fim)
+        if (novo.DataInicio >= novo.DataFim)
             return (false, "A hora de início deve ser anterior à hora de fim.");
 
-        if (novo.Inicio < DateTime.UtcNow)
+        if (novo.DataInicio < DateTime.UtcNow.AddMinutes(-5)) // Tolerância de 5 min
             return (false, "Não é possível agendar reuniões no passado.");
 
-        var duracao = novo.Fim - novo.Inicio;
+        var duracao = novo.DataFim - novo.DataInicio;
         if (duracao.TotalHours > DuracaoMaximaHoras)
             return (false, $"A reserva não pode exceder {DuracaoMaximaHoras} horas.");
 
-        // 3. Validação de Horário Dinâmico (Busca do Banco)
+        // 3. Validação de Horário de Funcionamento
         var config = await context.Configuracoes.FirstOrDefaultAsync() 
-                     ?? new ConfiguracaoSistema { HoraAbertura = 8, HoraFechamento = 18 };
+                     ?? new ConfiguracaoSistema { HoraAbertura = 8, HoraFechamento = 19 };
 
-        var inicioBr = TimeZoneInfo.ConvertTimeFromUtc(novo.Inicio, BrasiliaTimeZone);
-        var fimBr = TimeZoneInfo.ConvertTimeFromUtc(novo.Fim, BrasiliaTimeZone);
+        var inicioBr = TimeZoneInfo.ConvertTimeFromUtc(novo.DataInicio, BrasiliaTimeZone);
+        var fimBr = TimeZoneInfo.ConvertTimeFromUtc(novo.DataFim, BrasiliaTimeZone);
 
-        // Regra: Verifica se está DENTRO do intervalo configurado
-        if (inicioBr.Hour < config.HoraAbertura || 
-            fimBr.Hour > config.HoraFechamento || 
-            (fimBr.Hour == config.HoraFechamento && fimBr.Minute > 0))
+        if (inicioBr.Hour < config.HoraAbertura || fimBr.Hour > config.HoraFechamento || (fimBr.Hour == config.HoraFechamento && fimBr.Minute > 0))
         {
-            return (false, $"As reservas devem ser feitas entre {config.HoraAbertura:D2}:00 e {config.HoraFechamento:D2}:00.");
+            return (false, $"Reservas permitidas apenas entre {config.HoraAbertura:D2}:00 e {config.HoraFechamento:D2}:00.");
         }
 
-        // 4. Verificação de Conflitos
-        var conflito = await context.Agendamentos
-            .AnyAsync(a => a.SalaId == novo.SalaId && 
-                           a.Inicio < novo.Fim && 
-                           a.Fim > novo.Inicio);
+        // 4. Verificação de Conflitos (Lock Otimista)
+        // Verifica se existe algum agendamento para a MESMA sala que intercepte o horário
+        bool conflito = await context.Agendamentos
+            .AnyAsync(a => a.SalaId == novo.SalaId &&
+                           a.Id != novo.Id && // Ignora a própria reserva se for edição
+                           a.DataInicio < novo.DataFim && 
+                           a.DataFim > novo.DataInicio);
 
         if (conflito)
-            return (false, "Já existe uma reunião agendada para este horário nesta sala.");
+            return (false, "Conflito de horário! Já existe uma reunião nesta sala e horário.");
 
         try 
         {
-            context.Agendamentos.Add(novo);
+            if (novo.Id == 0)
+                context.Agendamentos.Add(novo);
+            else
+                context.Agendamentos.Update(novo);
+
             await context.SaveChangesAsync();
 
+            // Notifica todos os clientes conectados via SignalR
             await hubContext.Clients.All.SendAsync("ReceberAtualizacao");
 
             return (true, "Agendamento realizado com sucesso!");
@@ -136,9 +147,9 @@ public class AgendamentoService(IDbContextFactory<AppDbContext> dbFactory, IHubC
         }
     }
 
-    public async Task<bool> CancelarAgendamentoAsync(Guid agendamentoId)
+    public async Task<bool> CancelarAgendamentoAsync(int agendamentoId)
     {
-        using var context = dbFactory.CreateDbContext();
+        using var context = await dbFactory.CreateDbContextAsync();
 
         var agendamento = await context.Agendamentos.FindAsync(agendamentoId);
         if (agendamento == null) return false;
@@ -156,15 +167,15 @@ public class AgendamentoService(IDbContextFactory<AppDbContext> dbFactory, IHubC
 
     public async Task AdicionarSalaAsync(Sala novaSala)
     {
-        using var context = dbFactory.CreateDbContext();
+        using var context = await dbFactory.CreateDbContextAsync();
         context.Salas.Add(novaSala);
         await context.SaveChangesAsync();
         await hubContext.Clients.All.SendAsync("ReceberAtualizacao");
     }
 
-    public async Task<bool> ExcluirSalaAsync(Guid salaId)
+    public async Task<bool> ExcluirSalaAsync(int salaId)
     {
-        using var context = dbFactory.CreateDbContext();
+        using var context = await dbFactory.CreateDbContextAsync();
         
         var sala = await context.Salas
             .Include(s => s.Agendamentos)
@@ -172,18 +183,15 @@ public class AgendamentoService(IDbContextFactory<AppDbContext> dbFactory, IHubC
 
         if (sala == null) return false;
 
+        // Regra de negócio: Impedir exclusão se houver agendamentos futuros?
+        // Por enquanto, exclui tudo (Cascade delete deve estar configurado no EF ou removemos aqui)
+        if (sala.Agendamentos.Any())
+            context.Agendamentos.RemoveRange(sala.Agendamentos);
+
         context.Salas.Remove(sala);
         await context.SaveChangesAsync();
         await hubContext.Clients.All.SendAsync("ReceberAtualizacao");
 
         return true;
-    }
-
-    public async Task<List<Agendamento>> ListarTodosAgendamentosAdminAsync()
-    {
-        using var context = dbFactory.CreateDbContext();
-        return await context.Agendamentos
-            .OrderByDescending(a => a.Inicio)
-            .ToListAsync();
     }
 }
