@@ -14,12 +14,10 @@
     <div class="d-flex justify-space-between align-center mb-4">
         <MudText Typo="Typo.h4" Color="Color.Primary" Class="fw-bold">Calendário de Reuniões</MudText>
         
-        @* Legenda Rápida (Opcional - ajuda a entender as cores) *@
         <MudStack Row="true" Spacing="2">
             <MudText Typo="Typo.caption" Class="d-flex align-center">
-                <div style="width:12px; height:12px; background-color:#1565C0; margin-right:4px; border-radius:2px;"></div> Sala 1
+                <div style="width:12px; height:12px; background-color:#1565C0; margin-right:4px; border-radius:2px;"></div> Salas (Cores Automáticas)
             </MudText>
-            @* Você pode gerar essa legenda dinamicamente se quiser *@
         </MudStack>
     </div>
 
@@ -37,7 +35,7 @@
                 <MudTooltip Text="@($"{evento?.NomeSala} | {evento?.Text} ({item.Start:HH:mm} - {item.End:HH:mm})")" 
                             Arrow="true" Placement="Placement.Top">
                     
-                    @* CARD COMPACTO: Uma linha para economizar espaço *@
+                    @* CARD COMPACTO *@
                     <div class="d-flex align-center pa-1 mb-1 shadow-sm overflow-hidden" 
                          style="background-color: @(evento?.CorHex); border-radius: 4px; border-left: 3px solid rgba(0,0,0,0.3); cursor: pointer;">
                         
@@ -46,7 +44,7 @@
                             @item.Start.ToString("HH:mm")
                         </MudText>
                         
-                        @* Título/Sala (Truncado para não quebrar linha) *@
+                        @* Título/Sala *@
                         <MudText Typo="Typo.caption" Style="color: white; font-size: 0.7rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
                             <span style="opacity: 0.8; margin-right: 4px;">@evento?.NomeSala:</span> @item.Text
                         </MudText>
@@ -61,25 +59,16 @@
     private List<CustomCalendarItem> _events = new();
     private HubConnection? hubConnection;
 
-    // Paleta de cores "Material Design" (Escuras para texto branco)
+    // Paleta de cores "Material Design"
     private readonly string[] _paletaCores = new[] 
     { 
-        "#1565C0", // Azul
-        "#C62828", // Vermelho
-        "#2E7D32", // Verde
-        "#AD1457", // Rosa
-        "#EF6C00", // Laranja
-        "#4527A0", // Roxo
-        "#00695C", // Verde Azulado
-        "#4E342E"  // Marrom
+        "#1565C0", "#C62828", "#2E7D32", "#AD1457", 
+        "#EF6C00", "#4527A0", "#00695C", "#4E342E" 
     };
 
-    // Gera uma cor fixa baseada no NOME da sala (não aleatória)
     private string ObterCorPorSala(string nomeSala)
     {
         if (string.IsNullOrEmpty(nomeSala)) return _paletaCores[0];
-        
-        // O HashCode garante que a mesma sala sempre pegue a mesma cor
         int index = Math.Abs(nomeSala.GetHashCode()) % _paletaCores.Length;
         return _paletaCores[index];
     }
@@ -88,22 +77,37 @@
     {
         await CarregarCalendario();
         try {
-            hubConnection = new HubConnectionBuilder().WithUrl(Navigation.ToAbsoluteUri("/agendamentoHub")).WithAutomaticReconnect().Build();
-            hubConnection.On("ReceberAtualizacao", async () => { await CarregarCalendario(); await InvokeAsync(StateHasChanged); });
+            hubConnection = new HubConnectionBuilder()
+                .WithUrl(Navigation.ToAbsoluteUri("/agendamentoHub"))
+                .WithAutomaticReconnect()
+                .Build();
+            
+            hubConnection.On("ReceberAtualizacao", async () => { 
+                await CarregarCalendario(); 
+                await InvokeAsync(StateHasChanged); 
+            });
+            
             await hubConnection.StartAsync();
         } catch { /* Ignora erro de conexão */ }
     }
 
     private async Task CarregarCalendario()
     {
-        var agendamentos = await Service.ListarAgendamentosCalendarioAsync();
+        // CORREÇÃO: Definindo intervalo de datas para buscar no banco
+        // Pegamos 1 mês para trás e 2 para frente para cobrir a visualização do calendário
+        var hoje = DateTime.Today;
+        var inicio = hoje.AddMonths(-1); 
+        var fim = hoje.AddMonths(2);
+
+        // Passando as datas obrigatórias para o serviço
+        var agendamentos = await Service.ListarAgendamentosCalendarioAsync(inicio, fim);
+        
         _events.Clear();
 
         foreach (var agendamento in agendamentos)
         {
             if (agendamento.Sala == null) continue;
 
-            // Usa a lógica de cor consistente
             var corSala = ObterCorPorSala(agendamento.Sala.Nome);
 
             _events.Add(new CustomCalendarItem
@@ -112,7 +116,6 @@
                 End = agendamento.Fim.ToLocalTime(),
                 Text = agendamento.Titulo,
                 NomeSala = agendamento.Sala.Nome,
-                SalaColor = Color.Info, // Fallback
                 CorHex = corSala 
             });
         }
@@ -136,5 +139,13 @@
     public async ValueTask DisposeAsync()
     {
         if (hubConnection is not null) await hubConnection.DisposeAsync();
+    }
+    
+    // Classe auxiliar para estender o item padrão do calendário
+    public class CustomCalendarItem : CalendarItem
+    {
+        public string NomeSala { get; set; } = string.Empty;
+        public string CorHex { get; set; } = "#1565C0";
+        public Color SalaColor { get; set; } = Color.Primary;
     }
 }

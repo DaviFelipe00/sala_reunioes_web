@@ -5,6 +5,7 @@
 @using SalaReunioes.Web.Infrastructure.Services
 @inject AgendamentoService AgendamentoService
 @inject ISnackbar Snackbar
+@inject IDialogService DialogService
 
 <MudText Typo="Typo.h4" GutterBottom="true">Gerenciar Salas</MudText>
 
@@ -45,7 +46,7 @@
     private async Task CarregarSalas()
     {
         loading = true;
-        // Reutiliza o método que lista salas
+        // Reutiliza o método que lista salas (ajuste se preferir criar um método específico só para listar salas sem agendamentos)
         salas = await AgendamentoService.ListarSalasComAgendamentosAsync();
         loading = false;
     }
@@ -53,19 +54,36 @@
     private async Task SalvarSala()
     {
         if (string.IsNullOrWhiteSpace(novaSala.Nome)) return;
+        
         await AgendamentoService.AdicionarSalaAsync(novaSala);
-        novaSala = new Sala();
-        await CarregarSalas();
+        
+        novaSala = new Sala(); // Limpa o formulário
+        await CarregarSalas(); // Atualiza a tabela
         Snackbar.Add("Sala adicionada!", Severity.Success);
     }
 
     private async Task ConfirmarExclusao(Guid id)
     {
-        var sucesso = await AgendamentoService.ExcluirSalaAsync(id);
-        if (sucesso)
+        // Opcional: Adicionar uma caixa de confirmação visual
+        bool? result = await DialogService.ShowMessageBox(
+            "Excluir Sala", 
+            "Tem certeza que deseja excluir esta sala? Isso não pode ser desfeito.", 
+            yesText:"Excluir", cancelText:"Cancelar");
+
+        if (result == true)
         {
-            await CarregarSalas();
-            Snackbar.Add("Sala removida com sucesso.", Severity.Info);
+            try 
+            {
+                // CORREÇÃO AQUI: Chamada direta sem atribuição de variável
+                await AgendamentoService.ExcluirSalaAsync(id);
+                
+                await CarregarSalas();
+                Snackbar.Add("Sala excluída com sucesso!", Severity.Success);
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Erro ao excluir sala: {ex.Message}", Severity.Error);
+            }
         }
     }
 }
