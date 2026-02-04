@@ -31,11 +31,14 @@
     color: inherit !important;
 }
 
-/* 2. Barra Superior (MudAppBar) */
+/* 2. Barra Superior (MudAppBar) - CORRIGIDO */
 ::deep .mud-appbar {
-    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+    /* Ajustei a borda para ser clara, já que o fundo agora será escuro */
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1); 
     backdrop-filter: blur(8px);
-    background-color: rgba(255, 255, 255, 0.8) !important;
+    
+    /* A LINHA ABAIXO FOI REMOVIDA PARA QUE A BARRA FIQUE AZUL (Primary) */
+    /* background-color: rgba(255, 255, 255, 0.8) !important; */
 }
 
 /* 3. Ajuste do Logout no Menu */

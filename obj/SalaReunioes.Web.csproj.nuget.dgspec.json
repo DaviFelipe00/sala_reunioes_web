@@ -1,26 +1,25 @@
 {
   "format": 1,
   "restore": {
-    "/home/davi/dev/sala_reunioes_web/SalaReunioes.Web.csproj": {}
+    "C:\\Users\\DaviBarbosa\\Dev\\SalaReunioes.Web\\SalaReunioes.Web.csproj": {}
   },
   "projects": {
-    "/home/davi/dev/sala_reunioes_web/SalaReunioes.Web.csproj": {
+    "C:\\Users\\DaviBarbosa\\Dev\\SalaReunioes.Web\\SalaReunioes.Web.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "/home/davi/dev/sala_reunioes_web/SalaReunioes.Web.csproj",
+        "projectUniqueName": "C:\\Users\\DaviBarbosa\\Dev\\SalaReunioes.Web\\SalaReunioes.Web.csproj",
         "projectName": "SalaReunioes.Web",
-        "projectPath": "/home/davi/dev/sala_reunioes_web/SalaReunioes.Web.csproj",
-        "packagesPath": "/home/davi/.nuget/packages/",
-        "outputPath": "/home/davi/dev/sala_reunioes_web/obj/",
+        "projectPath": "C:\\Users\\DaviBarbosa\\Dev\\SalaReunioes.Web\\SalaReunioes.Web.csproj",
+        "packagesPath": "C:\\Users\\DaviBarbosa\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\DaviBarbosa\\Dev\\SalaReunioes.Web\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
-          "/home/davi/.nuget/NuGet/NuGet.Config"
+          "C:\\Users\\DaviBarbosa\\AppData\\Roaming\\NuGet\\NuGet.Config"
         ],
         "originalTargetFrameworks": [
           "net10.0"
         ],
         "sources": {
-          "/usr/lib/dotnet/library-packs": {},
           "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {
@@ -52,7 +51,7 @@
             "Microsoft.AspNetCore.App.Internal.Assets": {
               "suppressParent": "All",
               "target": "Package",
-              "version": "[10.0.1, )",
+              "version": "[10.0.2, )",
               "autoReferenced": true
             },
             "Microsoft.AspNetCore.Identity.EntityFrameworkCore": {
@@ -101,7 +100,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "/usr/lib/dotnet/sdk/10.0.101/PortableRuntimeIdentifierGraph.json",
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.102/PortableRuntimeIdentifierGraph.json",
           "packagesToPrune": {
             "Microsoft.AspNetCore": "(,10.0.32767]",
             "Microsoft.AspNetCore.Antiforgery": "(,10.0.32767]",

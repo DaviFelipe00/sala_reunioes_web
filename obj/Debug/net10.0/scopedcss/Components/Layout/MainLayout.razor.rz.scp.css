@@ -1,5 +1,5 @@
 /* 1. Customização da Sidebar (MudDrawer) */
-[b-up2s1jsefm] .mud-drawer {
+[b-qm3hqksi0u] .mud-drawer {
     background-image: linear-gradient(
         180deg,
         rgba(5, 39, 103, 1) 0%,
@@ -9,37 +9,40 @@
 }
 
 /* Ajuste dos ícones e textos na navegação para visibilidade no gradiente */
-[b-up2s1jsefm] .mud-nav-link {
+[b-qm3hqksi0u] .mud-nav-link {
     color: rgba(255, 255, 255, 0.7) !important;
     transition: all 0.3s ease;
     border-radius: 0 24px 24px 0;
     margin-right: 8px;
 }
 
-[b-up2s1jsefm] .mud-nav-link.active {
+[b-qm3hqksi0u] .mud-nav-link.active {
     color: #ffffff !important;
     background-color: rgba(255, 255, 255, 0.15) !important;
     backdrop-filter: blur(4px);
 }
 
-[b-up2s1jsefm] .mud-nav-link:hover:not(.active) {
+[b-qm3hqksi0u] .mud-nav-link:hover:not(.active) {
     background-color: rgba(255, 255, 255, 0.05) !important;
     color: white !important;
 }
 
-[b-up2s1jsefm] .mud-nav-link .mud-nav-link-icon {
+[b-qm3hqksi0u] .mud-nav-link .mud-nav-link-icon {
     color: inherit !important;
 }
 
-/* 2. Barra Superior (MudAppBar) */
-[b-up2s1jsefm] .mud-appbar {
-    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+/* 2. Barra Superior (MudAppBar) - CORRIGIDO */
+[b-qm3hqksi0u] .mud-appbar {
+    /* Ajustei a borda para ser clara, já que o fundo agora será escuro */
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1); 
     backdrop-filter: blur(8px);
-    background-color: rgba(255, 255, 255, 0.8) !important;
+    
+    /* A LINHA ABAIXO FOI REMOVIDA PARA QUE A BARRA FIQUE AZUL (Primary) */
+    /* background-color: rgba(255, 255, 255, 0.8) !important; */
 }
 
 /* 3. Ajuste do Logout no Menu */
-[b-up2s1jsefm] .logout-button {
+[b-qm3hqksi0u] .logout-button {
     background: none;
     border: none;
     width: 100%;
@@ -51,12 +54,12 @@
     transition: background-color 0.2s;
 }
 
-[b-up2s1jsefm] .logout-button:hover {
+[b-qm3hqksi0u] .logout-button:hover {
     background-color: var(--mud-palette-action-default-hover);
 }
 
 /* 4. Interface de Erro do Blazor (Modernizada) */
-#blazor-error-ui[b-up2s1jsefm] {
+#blazor-error-ui[b-qm3hqksi0u] {
     background: var(--mud-palette-error);
     color: var(--mud-palette-error-text);
     bottom: 1.5rem;
@@ -75,27 +78,27 @@
     gap: 12px;
 }
 
-#blazor-error-ui .dismiss[b-up2s1jsefm] {
+#blazor-error-ui .dismiss[b-qm3hqksi0u] {
     cursor: pointer;
     margin-left: auto;
     opacity: 0.8;
 }
 
-#blazor-error-ui .dismiss:hover[b-up2s1jsefm] {
+#blazor-error-ui .dismiss:hover[b-qm3hqksi0u] {
     opacity: 1;
 }
 
 /* 5. Scrollbar Slim (Opcional, para desktop) */
-[b-up2s1jsefm]::-webkit-scrollbar {
+[b-qm3hqksi0u]::-webkit-scrollbar {
     width: 6px;
     height: 6px;
 }
 
-[b-up2s1jsefm]::-webkit-scrollbar-thumb {
+[b-qm3hqksi0u]::-webkit-scrollbar-thumb {
     background: rgba(0,0,0,0.1);
     border-radius: 10px;
 }
 
-[b-up2s1jsefm]::-webkit-scrollbar-thumb:hover {
+[b-qm3hqksi0u]::-webkit-scrollbar-thumb:hover {
     background: rgba(0,0,0,0.2);
 }
