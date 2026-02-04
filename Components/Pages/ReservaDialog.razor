@@ -88,7 +88,7 @@
 
     [Parameter] public Agendamento Agendamento { get; set; } = new();
     
-    // --- CORREÇÃO: Adicionados os parâmetros que a Home.razor envia ---
+    // Parâmetros recebidos da Home
     [Parameter] public Guid SalaId { get; set; }
     [Parameter] public string SalaNome { get; set; } = string.Empty;
 
@@ -150,38 +150,50 @@
             _processando = true;
             try
             {
-                // Prepara o objeto
                 var dataBase = _dataSelecionada.Value;
                 Agendamento.Inicio = dataBase.Date.Add(_horaInicio);
                 Agendamento.Fim = Agendamento.Inicio.AddMinutes(_duracaoMinutos);
                 
-                // Validação de segurança: Data fim maior que inicio
                 if (Agendamento.Fim <= Agendamento.Inicio)
                 {
                     Snackbar.Add("O horário de término deve ser maior que o início.", Severity.Warning);
                     return;
                 }
 
-                // Salva no Banco de Dados
                 if (Agendamento.Id == Guid.Empty)
                 {
-                    // Garante ID e cria
-                    Agendamento.Id = Guid.NewGuid();
-                    // Assumindo que seu Service tem esse método baseado no seu histórico
-                    await Service.ReservarAsync(Agendamento);
-                    Snackbar.Add("Agendamento criado com sucesso!", Severity.Success);
+                    // --- REMOVIDO: Agendamento.Id = Guid.NewGuid(); ---
+                    // Deixamos o ID vazio para o Service entender que é um INSERT (Add)
+                    
+                    var resultado = await Service.ReservarAsync(Agendamento);
+
+                    if (resultado.Sucesso)
+                    {
+                        Snackbar.Add(resultado.Mensagem, Severity.Success);
+                        MudDialog.Close(DialogResult.Ok(Agendamento));
+                    }
+                    else
+                    {
+                        Snackbar.Add(resultado.Mensagem, Severity.Error);
+                    }
                 }
                 else
                 {
-                    // Atualiza (implementar se necessário no futuro)
-                    // await Service.AtualizarAgendamentoAsync(Agendamento);
+                    // Lógica de Edição (se houver)
+                     var resultado = await Service.ReservarAsync(Agendamento);
+                     if (resultado.Sucesso)
+                     {
+                        MudDialog.Close(DialogResult.Ok(Agendamento));
+                     }
+                     else 
+                     {
+                        Snackbar.Add(resultado.Mensagem, Severity.Error);
+                     }
                 }
-
-                MudDialog.Close(DialogResult.Ok(Agendamento));
             }
             catch (Exception ex)
             {
-                Snackbar.Add($"Erro ao salvar: {ex.Message}", Severity.Error);
+                Snackbar.Add($"Erro crítico: {ex.Message}", Severity.Error);
             }
             finally
             {
