@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("SalaReunioes.Web")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+14b709bf45b21cd8ee008f7384b581fc7d84aa8c")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+d11aced825457eaa6f9b2a278c20d9f61f88fde9")]
 [assembly: System.Reflection.AssemblyProductAttribute("SalaReunioes.Web")]
 [assembly: System.Reflection.AssemblyTitleAttribute("SalaReunioes.Web")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

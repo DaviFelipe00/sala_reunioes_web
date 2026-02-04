@@ -66,7 +66,6 @@
 
 @code {
     // MELHOR PRÁTICA: Uso do namespace completo (MudBlazor.MudDialogInstance)
-    // Isso evita qualquer erro de "using" ausente ou conflito de nomes.
     [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
 
     [Parameter] public Guid SalaId { get; set; }
@@ -95,26 +94,30 @@
         {
             // Lógica de Datas: Combina a Data (Picker) com a Hora (TimePicker)
             var dataBase = dataSelecionada.Value.Date;
-            var inicioLocal = dataBase.Add(horaInicio.Value);
-            var fimLocal = dataBase.Add(horaFim.Value);
+
+            // --- CORREÇÃO IMPORTANTE ---
+            // O DateTime.Today cria uma data com Kind=Local.
+            // O TimeZoneInfo.ConvertTimeToUtc exige que a origem seja Unspecified se o TimeZone de origem não for o Local.
+            // Usamos DateTime.SpecifyKind para "limpar" o Kind da data, permitindo a conversão correta usando o fuso de Brasília.
+            var inicioNaoEspecificado = DateTime.SpecifyKind(dataBase.Add(horaInicio.Value), DateTimeKind.Unspecified);
+            var fimNaoEspecificado = DateTime.SpecifyKind(dataBase.Add(horaFim.Value), DateTimeKind.Unspecified);
 
             // Validação de horário inválido (Fim antes do Início)
-            if (fimLocal <= inicioLocal)
+            if (fimNaoEspecificado <= inicioNaoEspecificado)
             {
                 Snackbar.Add("A hora final deve ser maior que a hora inicial.", Severity.Warning);
                 return;
             }
 
-            // Converter para UTC antes de salvar (Padrão de banco de dados moderno)
-            // Assumindo que o usuário está no horário de Brasília
-            var inicioUtc = TimeZoneInfo.ConvertTimeToUtc(inicioLocal, BrasiliaTimeZone);
-            var fimUtc = TimeZoneInfo.ConvertTimeToUtc(fimLocal, BrasiliaTimeZone);
+            // Converter para UTC usando explicitamente o TimeZone de Brasília
+            var inicioUtc = TimeZoneInfo.ConvertTimeToUtc(inicioNaoEspecificado, BrasiliaTimeZone);
+            var fimUtc = TimeZoneInfo.ConvertTimeToUtc(fimNaoEspecificado, BrasiliaTimeZone);
 
             // Preenche o objeto
-            novoAgendamento.Id = Guid.NewGuid(); // Garante um novo ID
+            // OBS: Não geramos o ID aqui (novoAgendamento.Id), deixamos o Service lidar com isso para saber que é insert.
             novoAgendamento.SalaId = SalaId;
-            novoAgendamento.Inicio = inicioUtc; // Usa propriedade correta 'Inicio'
-            novoAgendamento.Fim = fimUtc;       // Usa propriedade correta 'Fim'
+            novoAgendamento.Inicio = inicioUtc;
+            novoAgendamento.Fim = fimUtc;
 
             // Envia para o serviço
             var (sucesso, mensagem) = await AgendamentoService.ReservarAsync(novoAgendamento);

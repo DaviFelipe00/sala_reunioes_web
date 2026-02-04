@@ -31,7 +31,6 @@ public class AgendamentoService(IDbContextFactory<AppDbContext> dbFactory, IHubC
             .ToListAsync();
     }
 
-    // --- CORREÇÃO 1: Método que faltava para o Calendário ---
     public async Task<List<Agendamento>> ListarAgendamentosCalendarioAsync(DateTime inicio, DateTime fim)
     {
         using var context = await dbFactory.CreateDbContextAsync();
@@ -80,7 +79,6 @@ public class AgendamentoService(IDbContextFactory<AppDbContext> dbFactory, IHubC
     // ESCRITA (WRITE)
     // ==========================================================
 
-    // --- CORREÇÃO 2: Método que faltava para Configurações ---
     public async Task AtualizarConfiguracaoAsync(ConfiguracaoSistema config)
     {
         using var context = await dbFactory.CreateDbContextAsync();
@@ -97,7 +95,6 @@ public class AgendamentoService(IDbContextFactory<AppDbContext> dbFactory, IHubC
             // Se existe, atualiza os valores
             configExistente.HoraAbertura = config.HoraAbertura;
             configExistente.HoraFechamento = config.HoraFechamento;
-            // Adicione outros campos aqui se houver
         }
 
         await context.SaveChangesAsync();
@@ -146,10 +143,16 @@ public class AgendamentoService(IDbContextFactory<AppDbContext> dbFactory, IHubC
 
         try
         {
+            // CORREÇÃO AQUI: Se for novo (Guid.Empty), geramos o ID manualmente antes de salvar
             if (novo.Id == Guid.Empty)
+            {
+                novo.Id = Guid.NewGuid();
                 context.Agendamentos.Add(novo);
+            }
             else
+            {
                 context.Agendamentos.Update(novo);
+            }
 
             await context.SaveChangesAsync();
             await hubContext.Clients.All.SendAsync("ReceberAtualizacao");

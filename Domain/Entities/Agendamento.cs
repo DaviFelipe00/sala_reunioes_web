@@ -5,7 +5,7 @@ namespace SalaReunioes.Web.Domain.Entities;
 public class Agendamento
 {
     [Key]
-    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid Id { get; set; } // <--- A propriedade DEVE existir, apenas sem o "= Guid.NewGuid()"
 
     [Required(ErrorMessage = "A sala deve ser selecionada.")]
     public Guid SalaId { get; set; }
@@ -28,6 +28,6 @@ public class Agendamento
     [Display(Name = "Fim")]
     public DateTime Fim { get; set; }
 
-    // Propriedade de navegação (opcional, mas recomendada para facilitar consultas)
+    // Propriedade de navegação
     public virtual Sala? Sala { get; set; }
 }
