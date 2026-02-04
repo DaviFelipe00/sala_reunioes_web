@@ -47,7 +47,9 @@ builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddMudServices();
 builder.Services.AddSignalR();
 
-// Serviços de Negócio
+// Serviços de Negócio (Registrando os arquivos separados)
+builder.Services.AddScoped<ConfiguracaoService>();
+builder.Services.AddScoped<SalaService>();
 builder.Services.AddScoped<AgendamentoService>();
 
 // Componentes Blazor
