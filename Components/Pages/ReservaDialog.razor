@@ -1,140 +1,192 @@
-@using MudBlazor
-@using System.ComponentModel.DataAnnotations
 @using SalaReunioes.Web.Domain.Entities
 @using SalaReunioes.Web.Infrastructure.Services
-@inject AgendamentoService AgendamentoService
 @inject ISnackbar Snackbar
+@inject AgendamentoService Service
 
-<MudDialog ClassActions="px-6 pb-6">
-    <TitleContent>
-        <MudText Typo="Typo.h6" Color="Color.Primary" Class="fw-bold d-flex align-center">
-            <MudIcon Icon="@Icons.Material.Outlined.EditCalendar" Class="mr-2"/>
-            Reservar @SalaNome
-        </MudText>
-    </TitleContent>
+<MudDialog>
     <DialogContent>
-        <MudForm @ref="_form" @bind-IsValid="@_formIsValid">
-            <MudContainer Class="px-0 py-2">
-                <MudText Typo="Typo.body2" Style="color: var(--mud-palette-text-secondary)" Class="mb-4">
-                    Preencha os detalhes da reunião abaixo.
-                </MudText>
+        <MudForm @ref="_form" @bind-IsValid="@_success">
+            <MudGrid>
+                <MudItem xs="12">
+                    <MudTextField T="string" Label="Título da Reunião" 
+                                  @bind-Value="Agendamento.Titulo" 
+                                  Required="true" RequiredError="O título é obrigatório."
+                                  Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudItem>
                 
-                <MudStack Spacing="4">
-                    <MudTextField @bind-Value="novoAgendamento.Titulo" 
-                                 Label="Título" 
-                                 For="@(() => novoAgendamento.Titulo)"
-                                 Variant="Variant.Outlined" 
-                                 Margin="Margin.Dense" />
+                <MudItem xs="12">
+                    <MudTextField T="string" Label="Responsável" 
+                                  @bind-Value="Agendamento.Responsavel" 
+                                  Required="true" RequiredError="O responsável é obrigatório."
+                                  Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudItem>
 
-                    <MudTextField @bind-Value="novoAgendamento.Responsavel" 
-                                 Label="Responsável" 
-                                 For="@(() => novoAgendamento.Responsavel)"
-                                 Variant="Variant.Outlined" 
-                                 Margin="Margin.Dense" />
-
+                <MudItem xs="12" sm="6">
                     <MudDatePicker Label="Data" 
-                                  @bind-Date="dataSelecionada" 
-                                  Variant="Variant.Outlined" 
-                                  Margin="Margin.Dense" 
-                                  Color="Color.Primary" 
-                                  MinDate="DateTime.Today" />
+                                   @bind-Date="_dataSelecionada" 
+                                   DateFormat="dd/MM/yyyy"
+                                   Variant="Variant.Outlined" Margin="Margin.Dense" 
+                                   Editable="true" />
+                </MudItem>
 
-                    <MudStack Row="true">
-                        <MudTimePicker Label="Início" 
-                                      @bind-Time="horaInicio" 
-                                      Variant="Variant.Outlined" 
-                                      Margin="Margin.Dense" />
+                <MudItem xs="6" sm="3">
+                    <MudSelect T="TimeSpan" Label="Início" @bind-Value="_horaInicio" 
+                               Variant="Variant.Outlined" Margin="Margin.Dense"
+                               AnchorOrigin="Origin.BottomCenter">
+                        @foreach (var horario in _horariosDisponiveis)
+                        {
+                            <MudSelectItem Value="@horario">@horario.ToString(@"hh\:mm")</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
 
-                        <MudTimePicker Label="Fim" 
-                                      @bind-Time="horaFim" 
-                                      Variant="Variant.Outlined" 
-                                      Margin="Margin.Dense" />
-                    </MudStack>
-                </MudStack>
-            </MudContainer>
+                <MudItem xs="6" sm="3">
+                    <MudSelect T="int" Label="Duração" @bind-Value="_duracaoMinutos"
+                               Variant="Variant.Outlined" Margin="Margin.Dense"
+                               AnchorOrigin="Origin.BottomCenter">
+                        <MudSelectItem Value="30">30 min</MudSelectItem>
+                        <MudSelectItem Value="60">1 hora</MudSelectItem>
+                        <MudSelectItem Value="90">1h 30m</MudSelectItem>
+                        <MudSelectItem Value="120">2 horas</MudSelectItem>
+                        <MudSelectItem Value="180">3 horas</MudSelectItem>
+                        <MudSelectItem Value="240">4 horas</MudSelectItem>
+                        <MudSelectItem Value="480">Dia todo (8h)</MudSelectItem>
+                    </MudSelect>
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                        @(string.IsNullOrEmpty(SalaNome) ? "" : $"Sala: {SalaNome} | ")
+                        Previsão: 
+                        <b>@_dataSelecionada?.ToString("dd/MM")</b> das 
+                        <b>@_horaInicio.ToString(@"hh\:mm")</b> até 
+                        <b>@_horaInicio.Add(TimeSpan.FromMinutes(_duracaoMinutos)).ToString(@"hh\:mm")</b>
+                    </MudText>
+                </MudItem>
+
+            </MudGrid>
         </MudForm>
     </DialogContent>
     <DialogActions>
-        <MudButton OnClick="Cancel" Variant="Variant.Text">Cancelar</MudButton>
-        <MudButton Color="Color.Secondary" 
-                   Variant="Variant.Filled" 
-                   OnClick="Submit" 
-                   Class="px-6 rounded-lg"
-                   Disabled="@(!_formIsValid)">Confirmar</MudButton>
+        <MudButton OnClick="Cancel">Cancelar</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit" Disabled="@(!_success || _processando)">
+            @if (_processando)
+            {
+                <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true"/>
+                <MudText Class="ms-2">Salvando...</MudText>
+            }
+            else
+            {
+                <MudText>Salvar Agendamento</MudText>
+            }
+        </MudButton>
     </DialogActions>
 </MudDialog>
 
 @code {
-    // MELHOR PRÁTICA: Uso do namespace completo (MudBlazor.MudDialogInstance)
     [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
 
+    [Parameter] public Agendamento Agendamento { get; set; } = new();
+    
+    // --- CORREÇÃO: Adicionados os parâmetros que a Home.razor envia ---
     [Parameter] public Guid SalaId { get; set; }
-    [Parameter] public string SalaNome { get; set; } = "";
+    [Parameter] public string SalaNome { get; set; } = string.Empty;
 
     private MudForm _form = default!;
-    private bool _formIsValid;
-    private Agendamento novoAgendamento = new();
+    private bool _success;
+    private bool _processando = false;
     
-    // Configurações iniciais
-    private DateTime? dataSelecionada = DateTime.Today;
-    private TimeSpan? horaInicio = new TimeSpan(DateTime.Now.Hour + 1, 0, 0);
-    private TimeSpan? horaFim = new TimeSpan(DateTime.Now.Hour + 2, 0, 0);
+    private DateTime? _dataSelecionada;
+    private TimeSpan _horaInicio;
+    private int _duracaoMinutos = 60;
+    
+    private List<TimeSpan> _horariosDisponiveis = new();
 
-    // TimeZone do Brasil para garantir a conversão correta
-    private static readonly TimeZoneInfo BrasiliaTimeZone = 
-        TimeZoneInfo.FindSystemTimeZoneById("E. South America Standard Time");
+    protected override void OnInitialized()
+    {
+        // 1. Gera slots de tempo
+        var inicioDia = new TimeSpan(7, 0, 0);
+        var fimDia = new TimeSpan(20, 0, 0);
+        while (inicioDia <= fimDia)
+        {
+            _horariosDisponiveis.Add(inicioDia);
+            inicioDia = inicioDia.Add(TimeSpan.FromMinutes(30));
+        }
+
+        // 2. Configuração Inicial
+        if (Agendamento.Id != Guid.Empty) 
+        {
+            // Edição
+            _dataSelecionada = Agendamento.Inicio.Date;
+            _horaInicio = Agendamento.Inicio.TimeOfDay;
+            var diferenca = Agendamento.Fim - Agendamento.Inicio;
+            _duracaoMinutos = (int)diferenca.TotalMinutes;
+        }
+        else
+        {
+            // Novo Agendamento
+            Agendamento.SalaId = SalaId; // Vincula a sala recebida da Home
+            
+            _dataSelecionada = DateTime.Today;
+            var agora = DateTime.Now;
+            if (agora.Hour < 20)
+                _horaInicio = new TimeSpan(agora.Hour + 1, 0, 0);
+            else
+            {
+                _horaInicio = new TimeSpan(8, 0, 0);
+                _dataSelecionada = DateTime.Today.AddDays(1);
+            }
+        }
+    }
 
     private void Cancel() => MudDialog.Cancel();
 
     private async Task Submit()
     {
         await _form.Validate();
-
-        if (_form.IsValid && dataSelecionada.HasValue && horaInicio.HasValue && horaFim.HasValue)
+        
+        if (_form.IsValid && _dataSelecionada.HasValue)
         {
-            // Lógica de Datas: Combina a Data (Picker) com a Hora (TimePicker)
-            var dataBase = dataSelecionada.Value.Date;
-
-            // --- CORREÇÃO IMPORTANTE ---
-            // O DateTime.Today cria uma data com Kind=Local.
-            // O TimeZoneInfo.ConvertTimeToUtc exige que a origem seja Unspecified se o TimeZone de origem não for o Local.
-            // Usamos DateTime.SpecifyKind para "limpar" o Kind da data, permitindo a conversão correta usando o fuso de Brasília.
-            var inicioNaoEspecificado = DateTime.SpecifyKind(dataBase.Add(horaInicio.Value), DateTimeKind.Unspecified);
-            var fimNaoEspecificado = DateTime.SpecifyKind(dataBase.Add(horaFim.Value), DateTimeKind.Unspecified);
-
-            // Validação de horário inválido (Fim antes do Início)
-            if (fimNaoEspecificado <= inicioNaoEspecificado)
+            _processando = true;
+            try
             {
-                Snackbar.Add("A hora final deve ser maior que a hora inicial.", Severity.Warning);
-                return;
+                // Prepara o objeto
+                var dataBase = _dataSelecionada.Value;
+                Agendamento.Inicio = dataBase.Date.Add(_horaInicio);
+                Agendamento.Fim = Agendamento.Inicio.AddMinutes(_duracaoMinutos);
+                
+                // Validação de segurança: Data fim maior que inicio
+                if (Agendamento.Fim <= Agendamento.Inicio)
+                {
+                    Snackbar.Add("O horário de término deve ser maior que o início.", Severity.Warning);
+                    return;
+                }
+
+                // Salva no Banco de Dados
+                if (Agendamento.Id == Guid.Empty)
+                {
+                    // Garante ID e cria
+                    Agendamento.Id = Guid.NewGuid();
+                    // Assumindo que seu Service tem esse método baseado no seu histórico
+                    await Service.ReservarAsync(Agendamento);
+                    Snackbar.Add("Agendamento criado com sucesso!", Severity.Success);
+                }
+                else
+                {
+                    // Atualiza (implementar se necessário no futuro)
+                    // await Service.AtualizarAgendamentoAsync(Agendamento);
+                }
+
+                MudDialog.Close(DialogResult.Ok(Agendamento));
             }
-
-            // Converter para UTC usando explicitamente o TimeZone de Brasília
-            var inicioUtc = TimeZoneInfo.ConvertTimeToUtc(inicioNaoEspecificado, BrasiliaTimeZone);
-            var fimUtc = TimeZoneInfo.ConvertTimeToUtc(fimNaoEspecificado, BrasiliaTimeZone);
-
-            // Preenche o objeto
-            // OBS: Não geramos o ID aqui (novoAgendamento.Id), deixamos o Service lidar com isso para saber que é insert.
-            novoAgendamento.SalaId = SalaId;
-            novoAgendamento.Inicio = inicioUtc;
-            novoAgendamento.Fim = fimUtc;
-
-            // Envia para o serviço
-            var (sucesso, mensagem) = await AgendamentoService.ReservarAsync(novoAgendamento);
-
-            if (sucesso) 
+            catch (Exception ex)
             {
-                Snackbar.Add(mensagem, Severity.Success);
-                MudDialog.Close(DialogResult.Ok(true));
-            } 
-            else 
-            {
-                Snackbar.Add(mensagem, Severity.Error);
+                Snackbar.Add($"Erro ao salvar: {ex.Message}", Severity.Error);
             }
-        }
-        else
-        {
-            Snackbar.Add("Por favor, preencha todos os campos obrigatórios.", Severity.Warning);
+            finally
+            {
+                _processando = false;
+            }
         }
     }
 }
