@@ -1,2 +1,96 @@
-bin/
-obj/
+############################################################
+# .NET / C# / Blazor - Ideal .gitignore
+############################################################
+
+# Build results
+**/bin/
+**/obj/
+
+# Visual Studio files
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Rider / JetBrains
+.idea/
+*.sln.iml
+
+# VS Code
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# OS generated
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Logs
+*.log
+
+# NuGet
+*.nupkg
+*.snupkg
+.nuget/
+packages/
+**/packages/*
+# (se estiver usando PackageReference, normalmente não existe /packages)
+
+# Publish output
+**/publish/
+**/Publish/
+**/*.pubxml
+**/*.pubxml.user
+
+# Dotnet tool artifacts
+.dotnet/
+
+# Test results
+TestResults/
+**/*.trx
+
+# Coverage
+coverage/
+*.coverage
+*.coveragexml
+**/coverage.cobertura.xml
+
+# ASP.NET Scaffolding
+ScaffoldingReadMe.txt
+
+# Entity Framework
+*.dbmdl
+*.edmx.diagram
+
+# Azure / local secrets
+**/appsettings.Development.json
+**/appsettings.Local.json
+**/secrets.json
+
+# Certificates
+*.pfx
+
+# Generated files
+*.dll
+*.exe
+*.pdb
+*.cache
+*.tmp
+
+# Node (se tiver front junto)
+node_modules/
+dist/
+build/
+
+# Local databases
+*.db
+*.sqlite
+*.sqlite3
+
+# Docker
+**/docker-compose.override.yml
