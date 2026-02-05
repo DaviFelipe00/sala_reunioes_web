@@ -8,17 +8,25 @@
         <MudForm @ref="_form" @bind-IsValid="@_success">
             <MudGrid>
                 <MudItem xs="12">
-                    <MudTextField T="string" Label="Título da Reunião" 
-                                  @bind-Value="Agendamento.Titulo" 
-                                  Required="true" RequiredError="O título é obrigatório."
-                                  Variant="Variant.Outlined" Margin="Margin.Dense" />
-                </MudItem>
-                
+    @* 1. Adicionado Immediate="true" para validar enquanto digita *@
+    <MudTextField T="string" Label="Título da Reunião" 
+                  @bind-Value="Agendamento.Titulo" 
+                  Required="true" 
+                  RequiredError="O título é obrigatório."
+                  Variant="Variant.Outlined" 
+                  Margin="Margin.Dense"
+                  Immediate="true" /> 
+            </MudItem>
+
                 <MudItem xs="12">
+                    @* 2. O mesmo aqui para o Responsável *@
                     <MudTextField T="string" Label="Responsável" 
-                                  @bind-Value="Agendamento.Responsavel" 
-                                  Required="true" RequiredError="O responsável é obrigatório."
-                                  Variant="Variant.Outlined" Margin="Margin.Dense" />
+                                @bind-Value="Agendamento.Responsavel" 
+                                Required="true" 
+                                RequiredError="O responsável é obrigatório."
+                                Variant="Variant.Outlined" 
+                                Margin="Margin.Dense"
+                                Immediate="true" />
                 </MudItem>
 
                 <MudItem xs="12" sm="6">
