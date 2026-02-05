@@ -3,11 +3,14 @@
 @using SalaReunioes.Web.Infrastructure.Services
 @using Microsoft.AspNetCore.SignalR.Client
 @implements IAsyncDisposable
-@inject AgendamentoService Service
+
+@* 1. INJEÇÃO DE DEPENDÊNCIA CORRIGIDA: *@
+@inject SalaService SalaService 
+@inject AgendamentoService AgendamentoService
 @inject IDialogService DialogService
 @inject NavigationManager Navigation
 
-@* 1. DEFINA O RENDER MODE: Sem isso, o @onclick não dispara no servidor *@
+@* 2. RENDER MODE: *@
 @rendermode InteractiveServer
 
 <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-6">
@@ -21,7 +24,7 @@
         </div>
         <div class="d-flex align-center">
             <MudChip T="string" Icon="@Icons.Material.Filled.CloudSync" Color="Color.Success" Variant="Variant.Text" Class="mr-4 fw-bold">Sincronizado</MudChip>
-            @* 2. AÇÃO PARA O BOTÃO PRINCIPAL: Caso queira agendar na primeira sala disponível *@
+            
             <MudButton Variant="Variant.Filled" 
                        Color="Color.Secondary" 
                        StartIcon="@Icons.Material.Filled.Add" 
@@ -56,7 +59,7 @@
                     </div>
 
                     <div class="sala-content">
-                        @* 3. CONSISTÊNCIA DE DATA: Usando DateTime.Today para bater com o fuso local do servidor *@
+                        @* 3. CONSISTÊNCIA DE DATA: *@
                         @if (!sala.Agendamentos.Any(a => a.Inicio.ToLocalTime().Date == DateTime.Today))
                         {
                             <div class="no-meetings d-flex flex-column align-center justify-center">
@@ -104,7 +107,6 @@
 </MudContainer>
 
 <style>
-    /* ... Seus estilos permanecem iguais ... */
     .planner-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; min-height: 70vh; }
     .planner-column { background-color: #F8FAFC; border-radius: 16px; padding: 12px; display: flex; flex-direction: column; border: 1px solid rgba(0, 59, 92, 0.05); }
     .sala-header { padding: 8px 0 16px 0; border-bottom: 2px solid rgba(0, 59, 92, 0.05); margin-bottom: 16px; }
@@ -123,7 +125,7 @@
     {
         await CarregarDados();
 
-        // 4. TRATAMENTO DE ERRO NO SIGNALR: Evita que a página trave se o Hub estiver offline
+        // 4. TRATAMENTO DE ERRO NO SIGNALR
         try {
             hubConnection = new HubConnectionBuilder()
                 .WithUrl(Navigation.ToAbsoluteUri("/agendamentoHub"))
@@ -143,8 +145,9 @@
 
     private async Task CarregarDados() 
     {
-        salas = await Service.ListarSalasComAgendamentosAsync();
-        StateHasChanged(); // Força a atualização da UI após carregar
+        // CORREÇÃO: Usando SalaService para listar as salas
+        salas = await SalaService.ListarSalasComAgendamentosAsync();
+        StateHasChanged(); 
     }
 
     private async Task AbrirReserva(Guid salaId, string nome)
@@ -157,7 +160,6 @@
             { x => x.SalaNome, nome } 
         };
         
-        // 5. CONFIGURAÇÃO DO DIÁLOGO: Definindo opções visuais
         var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Small, FullWidth = true };
         
         var dialog = await DialogService.ShowAsync<ReservaDialog>($"Nova Reserva - {nome}", parameters, options);
