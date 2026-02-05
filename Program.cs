@@ -16,6 +16,7 @@ var builder = WebApplication.CreateBuilder(args);
 // ==========================================
 
 // Configuração do Banco de Dados (COM FACTORY)
+// Usar Factory é crucial no Blazor Server para evitar o erro "DbContext already being used"
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
 builder.Services.AddDbContextFactory<AppDbContext>(options =>
@@ -30,7 +31,8 @@ builder.Services.AddIdentityCore<IdentityUser>(options => {
     options.Password.RequireLowercase = false;
 })
 .AddEntityFrameworkStores<AppDbContext>()
-.AddSignInManager();
+.AddSignInManager()
+.AddDefaultTokenProviders();
 
 // Autenticação e Autorização
 builder.Services.AddAuthentication(options =>
@@ -47,7 +49,7 @@ builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddMudServices();
 builder.Services.AddSignalR();
 
-// Serviços de Negócio (Registrando os arquivos separados)
+// Serviços de Negócio
 builder.Services.AddScoped<ConfiguracaoService>();
 builder.Services.AddScoped<SalaService>();
 builder.Services.AddScoped<AgendamentoService>();
@@ -61,11 +63,11 @@ var app = builder.Build();
 // ==========================================
 // 2. Configuração de Localização (PT-BR)
 // ==========================================
-var supportedCultures = new[] { "pt-BR" };
+var supportedCultures = new[] { new CultureInfo("pt-BR") };
 var localizationOptions = new RequestLocalizationOptions()
-    .SetDefaultCulture(supportedCultures[0])
-    .AddSupportedCultures(supportedCultures)
-    .AddSupportedUICultures(supportedCultures);
+    .SetDefaultCulture("pt-BR")
+    .AddSupportedCultures("pt-BR")
+    .AddSupportedUICultures("pt-BR");
 
 app.UseRequestLocalization(localizationOptions);
 
@@ -87,6 +89,7 @@ using (var scope = app.Services.CreateScope())
         logger.LogInformation("✅ Migração concluída com sucesso!");
 
         logger.LogInformation("🌱 Iniciando Seed de dados...");
+        // Certifique-se que sua classe DbInitializer aceita IServiceProvider ou o contexto correto
         await DbInitializer.SeedAdminUser(services);
         logger.LogInformation("✅ Seed concluído.");
     }
@@ -103,6 +106,7 @@ using (var scope = app.Services.CreateScope())
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
+    // O valor default do HSTS é 30 dias. Você pode querer alterar isso para produção.
     app.UseHsts();
 }
 
@@ -118,22 +122,23 @@ app.UseAuthorization();
 // 5. Endpoints
 // ==========================================
 
-// Endpoint de Login
+// Endpoint de Login (Formulário Simples)
 app.MapPost("Account/Login", async (
     [FromForm] string UserName, 
     [FromForm] string Password, 
+    [FromQuery] string? ReturnUrl,
     SignInManager<IdentityUser> signInManager) =>
 {
     var result = await signInManager.PasswordSignInAsync(UserName, Password, isPersistent: true, lockoutOnFailure: false);
     
     if (result.Succeeded)
     {
-        return Results.Redirect("/");
+        return Results.Redirect(ReturnUrl ?? "/");
     }
     
     return Results.Redirect("/login?error=1");
 })
-.DisableAntiforgery();
+.DisableAntiforgery(); // Desativado aqui para facilitar form post simples, mas idealmente deve-se enviar o token
 
 // Endpoint de Logout
 app.MapPost("Account/Logout", async (SignInManager<IdentityUser> signInManager) =>
