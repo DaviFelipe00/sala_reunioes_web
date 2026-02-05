@@ -2,31 +2,31 @@
 @using SalaReunioes.Web.Infrastructure.Services
 @inject ISnackbar Snackbar
 @inject AgendamentoService Service
+@inject ConfiguracaoService ConfigService
 
 <MudDialog>
     <DialogContent>
         <MudForm @ref="_form" @bind-IsValid="@_success">
             <MudGrid>
                 <MudItem xs="12">
-    @* 1. Adicionado Immediate="true" para validar enquanto digita *@
-    <MudTextField T="string" Label="Título da Reunião" 
-                  @bind-Value="Agendamento.Titulo" 
-                  Required="true" 
-                  RequiredError="O título é obrigatório."
-                  Variant="Variant.Outlined" 
-                  Margin="Margin.Dense"
-                  Immediate="true" /> 
-            </MudItem>
-
+                    @* 1. Immediate="true" valida e libera o botão a cada letra digitada *@
+                    <MudTextField T="string" Label="Título da Reunião" 
+                                  @bind-Value="Agendamento.Titulo" 
+                                  Required="true" 
+                                  RequiredError="O título é obrigatório."
+                                  Variant="Variant.Outlined" 
+                                  Margin="Margin.Dense"
+                                  Immediate="true" /> 
+                </MudItem>
+                
                 <MudItem xs="12">
-                    @* 2. O mesmo aqui para o Responsável *@
                     <MudTextField T="string" Label="Responsável" 
-                                @bind-Value="Agendamento.Responsavel" 
-                                Required="true" 
-                                RequiredError="O responsável é obrigatório."
-                                Variant="Variant.Outlined" 
-                                Margin="Margin.Dense"
-                                Immediate="true" />
+                                  @bind-Value="Agendamento.Responsavel" 
+                                  Required="true" 
+                                  RequiredError="O responsável é obrigatório."
+                                  Variant="Variant.Outlined" 
+                                  Margin="Margin.Dense"
+                                  Immediate="true" />
                 </MudItem>
 
                 <MudItem xs="12" sm="6">
@@ -95,8 +95,6 @@
     [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
 
     [Parameter] public Agendamento Agendamento { get; set; } = new();
-    
-    // Parâmetros recebidos da Home
     [Parameter] public Guid SalaId { get; set; }
     [Parameter] public string SalaNome { get; set; } = string.Empty;
 
@@ -110,21 +108,27 @@
     
     private List<TimeSpan> _horariosDisponiveis = new();
 
-    protected override void OnInitialized()
+    // 2. Mudado para Async para buscar configuração do banco
+    protected override async Task OnInitializedAsync()
     {
-        // 1. Gera slots de tempo
-        var inicioDia = new TimeSpan(7, 0, 0);
-        var fimDia = new TimeSpan(20, 0, 0);
-        while (inicioDia <= fimDia)
+        // Busca horários reais de funcionamento (ex: 08:00 as 18:00)
+        var config = await ConfigService.ObterConfiguracaoAsync();
+        
+        var inicioDia = new TimeSpan(config.HoraAbertura, 0, 0);
+        var fimDia = new TimeSpan(config.HoraFechamento, 0, 0);
+
+        _horariosDisponiveis.Clear();
+        // Loop dinâmico
+        while (inicioDia < fimDia)
         {
             _horariosDisponiveis.Add(inicioDia);
             inicioDia = inicioDia.Add(TimeSpan.FromMinutes(30));
         }
 
-        // 2. Configuração Inicial
+        // Lógica de Inicialização dos Campos
         if (Agendamento.Id != Guid.Empty) 
         {
-            // Edição
+            // Modo Edição
             _dataSelecionada = Agendamento.Inicio.Date;
             _horaInicio = Agendamento.Inicio.TimeOfDay;
             var diferenca = Agendamento.Fim - Agendamento.Inicio;
@@ -132,17 +136,23 @@
         }
         else
         {
-            // Novo Agendamento
-            Agendamento.SalaId = SalaId; // Vincula a sala recebida da Home
-            
+            // Modo Novo Agendamento
+            Agendamento.SalaId = SalaId;
             _dataSelecionada = DateTime.Today;
-            var agora = DateTime.Now;
-            if (agora.Hour < 20)
-                _horaInicio = new TimeSpan(agora.Hour + 1, 0, 0);
+            
+            var agora = DateTime.Now.TimeOfDay;
+            
+            // Seleciona o próximo horário livre HOJE ou joga para AMANHÃ
+            var proximoHorario = _horariosDisponiveis.FirstOrDefault(h => h > agora);
+
+            if (proximoHorario == default) // Se já passou do horário de fechar
+            {
+                _horaInicio = _horariosDisponiveis.FirstOrDefault(); // Pega o primeiro horário (ex: 08:00)
+                _dataSelecionada = DateTime.Today.AddDays(1); // Joga para amanhã
+            }
             else
             {
-                _horaInicio = new TimeSpan(8, 0, 0);
-                _dataSelecionada = DateTime.Today.AddDays(1);
+                _horaInicio = proximoHorario;
             }
         }
     }
@@ -162,41 +172,27 @@
                 Agendamento.Inicio = dataBase.Date.Add(_horaInicio);
                 Agendamento.Fim = Agendamento.Inicio.AddMinutes(_duracaoMinutos);
                 
+                // Validação de horário inválido
                 if (Agendamento.Fim <= Agendamento.Inicio)
                 {
                     Snackbar.Add("O horário de término deve ser maior que o início.", Severity.Warning);
                     return;
                 }
 
-                if (Agendamento.Id == Guid.Empty)
-                {
-                    // --- REMOVIDO: Agendamento.Id = Guid.NewGuid(); ---
-                    // Deixamos o ID vazio para o Service entender que é um INSERT (Add)
-                    
-                    var resultado = await Service.ReservarAsync(Agendamento);
+                // Chama o serviço (que já tem Transação e trata Add ou Update internamente)
+                var resultado = await Service.ReservarAsync(Agendamento);
 
-                    if (resultado.Sucesso)
-                    {
+                if (resultado.Sucesso)
+                {
+                    // Só mostra mensagem de sucesso se for criação (opcional, mas fica mais limpo)
+                    if (Agendamento.Id == Guid.Empty) 
                         Snackbar.Add(resultado.Mensagem, Severity.Success);
-                        MudDialog.Close(DialogResult.Ok(Agendamento));
-                    }
-                    else
-                    {
-                        Snackbar.Add(resultado.Mensagem, Severity.Error);
-                    }
+                    
+                    MudDialog.Close(DialogResult.Ok(Agendamento));
                 }
                 else
                 {
-                    // Lógica de Edição (se houver)
-                     var resultado = await Service.ReservarAsync(Agendamento);
-                     if (resultado.Sucesso)
-                     {
-                        MudDialog.Close(DialogResult.Ok(Agendamento));
-                     }
-                     else 
-                     {
-                        Snackbar.Add(resultado.Mensagem, Severity.Error);
-                     }
+                    Snackbar.Add(resultado.Mensagem, Severity.Error);
                 }
             }
             catch (Exception ex)
