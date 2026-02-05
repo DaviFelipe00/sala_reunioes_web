@@ -3,7 +3,7 @@
 @attribute [Authorize]
 @using SalaReunioes.Web.Domain.Entities
 @using SalaReunioes.Web.Infrastructure.Services
-@inject AgendamentoService AgendamentoService
+@inject SalaService SalaService
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
 
@@ -46,8 +46,8 @@
     private async Task CarregarSalas()
     {
         loading = true;
-        // Reutiliza o método que lista salas (ajuste se preferir criar um método específico só para listar salas sem agendamentos)
-        salas = await AgendamentoService.ListarSalasComAgendamentosAsync();
+        // Utiliza o novo SalaService para listar as salas e seus agendamentos
+        salas = await SalaService.ListarSalasComAgendamentosAsync();
         loading = false;
     }
 
@@ -55,7 +55,8 @@
     {
         if (string.IsNullOrWhiteSpace(novaSala.Nome)) return;
         
-        await AgendamentoService.AdicionarSalaAsync(novaSala);
+        // Chama o método de adição no SalaService
+        await SalaService.AdicionarSalaAsync(novaSala);
         
         novaSala = new Sala(); // Limpa o formulário
         await CarregarSalas(); // Atualiza a tabela
@@ -64,7 +65,6 @@
 
     private async Task ConfirmarExclusao(Guid id)
     {
-        // Opcional: Adicionar uma caixa de confirmação visual
         bool? result = await DialogService.ShowMessageBox(
             "Excluir Sala", 
             "Tem certeza que deseja excluir esta sala? Isso não pode ser desfeito.", 
@@ -74,8 +74,8 @@
         {
             try 
             {
-                // CORREÇÃO AQUI: Chamada direta sem atribuição de variável
-                await AgendamentoService.ExcluirSalaAsync(id);
+                // Chama o método de exclusão no SalaService
+                await SalaService.ExcluirSalaAsync(id);
                 
                 await CarregarSalas();
                 Snackbar.Add("Sala excluída com sucesso!", Severity.Success);

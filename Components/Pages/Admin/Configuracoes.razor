@@ -3,7 +3,7 @@
 @using SalaReunioes.Web.Domain.Entities
 @using SalaReunioes.Web.Infrastructure.Services
 @attribute [Authorize]
-@inject AgendamentoService Service
+@inject ConfiguracaoService ConfigService
 @inject ISnackbar Snackbar
 
 <MudContainer MaxWidth="MaxWidth.Medium" Class="mt-8">
@@ -13,7 +13,9 @@
 
         @if (_config == null)
         {
-            <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+            <div class="d-flex justify-center">
+                <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+            </div>
         }
         else
         {
@@ -49,18 +51,22 @@
 
     protected override async Task OnInitializedAsync()
     {
-        _config = await Service.ObterConfiguracaoAsync();
+        // Busca a configuração através do serviço especializado
+        _config = await ConfigService.ObterConfiguracaoAsync();
     }
 
     private async Task Salvar()
     {
-        if (_config!.HoraAbertura >= _config.HoraFechamento)
+        if (_config == null) return;
+
+        if (_config.HoraAbertura >= _config.HoraFechamento)
         {
             Snackbar.Add("O horário de abertura deve ser menor que o fechamento.", Severity.Warning);
             return;
         }
 
-        await Service.AtualizarConfiguracaoAsync(_config);
+        // Atualiza as configurações no banco via ConfiguracaoService
+        await ConfigService.AtualizarConfiguracaoAsync(_config);
         Snackbar.Add("Regras atualizadas com sucesso!", Severity.Success);
     }
 }
