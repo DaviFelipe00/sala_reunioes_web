@@ -79,7 +79,6 @@
     <DialogActions>
         <MudButton OnClick="Cancel">Cancelar</MudButton>
         
-        @* CORREÇÃO: Removido a trava Disabled para o botão ficar sempre "clicável" *@
         <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit" Disabled="@(_processando)">
             @if (_processando) { <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true"/> }
             else { <MudText>Salvar Agendamento</MudText> }
@@ -89,9 +88,13 @@
 
 @code {
     [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    
     [Parameter] public Agendamento Agendamento { get; set; } = new();
     [Parameter] public Guid SalaId { get; set; }
     [Parameter] public string SalaNome { get; set; } = string.Empty;
+    
+    // Recebe a data que o usuário estava visualizando na Home
+    [Parameter] public DateTime DataInicial { get; set; } = DateTime.Today; 
 
     private MudForm _form = default!;
     private bool _success;
@@ -101,34 +104,50 @@
     private TimeSpan? _horaInicio;
     private TimeSpan? _horaFim;
 
-    // Lista simples de cores com nomes em Português
+    // Lista de cores com nomes de negócio
     public record OpcaoCor(string Nome, string Hex);
     private List<OpcaoCor> _coresDisponiveis = new()
     {
         new("Alinhamento", "#007ACC"),       // Azul
-        new("Urgente", "#C62828"),   // Vermelho
-        new("Cliente", "#2E7D32"),   // Verde
-        new("Planejamento", "#F57C00"),        // Laranja
-        new("Treinamento", "#7B1FA2"),         // Roxo
+        new("Urgente", "#C62828"),           // Vermelho
+        new("Cliente", "#2E7D32"),           // Verde
+        new("Planejamento", "#F57C00"),      // Laranja
+        new("Treinamento", "#7B1FA2")        // Roxo
     };
 
     protected override void OnInitialized()
     {
         if (Agendamento.Id != Guid.Empty) 
         {
+            // Modo Edição
             _dataSelecionada = Agendamento.Inicio.Date;
             _horaInicio = Agendamento.Inicio.TimeOfDay;
             _horaFim = Agendamento.Fim.TimeOfDay;
         }
         else
         {
+            // Modo Novo Agendamento
             Agendamento.SalaId = SalaId;
-            _dataSelecionada = DateTime.Today;
+            
+            // Usa a DataInicial passada pela Home para já abrir no dia certo
+            _dataSelecionada = DataInicial; 
             
             var agora = DateTime.Now;
-            _horaInicio = new TimeSpan(agora.Hour, agora.Minute, 0); 
+            
+            // Se a data selecionada for hoje, sugere a próxima hora cheia.
+            // Se for futuro (amanhã, mês que vem), sugere começar o dia às 08:00.
+            if (DataInicial.Date == DateTime.Today)
+            {
+                _horaInicio = new TimeSpan(agora.Hour + 1, 0, 0); 
+            }
+            else
+            {
+                _horaInicio = new TimeSpan(8, 0, 0); 
+            }
+            
             _horaFim = _horaInicio.Value.Add(TimeSpan.FromHours(1));
             
+            // Define uma cor padrão se não houver
             if (string.IsNullOrEmpty(Agendamento.Cor)) Agendamento.Cor = "#007ACC";
         }
     }
@@ -137,7 +156,6 @@
 
     private async Task Submit()
     {
-        // Força a validação ao clicar no botão
         await _form.Validate();
         
         if (_form.IsValid && _dataSelecionada.HasValue && _horaInicio.HasValue && _horaFim.HasValue)
@@ -175,11 +193,6 @@
             {
                 _processando = false;
             }
-        }
-        else
-        {
-            // Opcional: Avisar se o form estiver inválido visualmente
-            // Snackbar.Add("Preencha todos os campos obrigatórios.", Severity.Warning);
         }
     }
 }

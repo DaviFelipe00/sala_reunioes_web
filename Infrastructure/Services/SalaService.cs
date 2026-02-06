@@ -8,18 +8,24 @@ namespace SalaReunioes.Web.Infrastructure.Services;
 
 public class SalaService(IDbContextFactory<AppDbContext> dbFactory, IHubContext<AgendamentoHub> hubContext)
 {
+    // Mantemos este para compatibilidade com outras telas, se houver
     public async Task<List<Sala>> ListarSalasComAgendamentosAsync()
+    {
+        return await ListarAgendaDoDiaAsync(DateTime.Today);
+    }
+
+    // --- NOVO MÉTODO PRINCIPAL ---
+    public async Task<List<Sala>> ListarAgendaDoDiaAsync(DateTime data)
     {
         using var context = await dbFactory.CreateDbContextAsync();
         
-        // CORREÇÃO CRÍTICA:
-        // Antes: DateTime.UtcNow (filtrava tudo que já começou)
-        // Agora: DateTime.UtcNow.Date (Pega tudo de HOJE em diante)
-        // Adicionamos AddDays(-1) por segurança de fuso horário para garantir que o dia local inteiro apareça
-        var filtroInicio = DateTime.UtcNow.Date.AddDays(-1);
+        // Define o intervalo de 00:00:00 a 23:59:59 da data solicitada (em UTC)
+        var inicioDia = data.Date.ToUniversalTime();
+        var fimDia = inicioDia.AddDays(1).AddTicks(-1);
 
         return await context.Salas
-            .Include(s => s.Agendamentos.Where(a => a.Inicio >= filtroInicio))
+            .Include(s => s.Agendamentos
+                .Where(a => a.Inicio >= inicioDia && a.Inicio <= fimDia)) // Filtra EXATAMENTE o dia
             .OrderBy(s => s.Nome)
             .AsNoTracking()
             .ToListAsync();

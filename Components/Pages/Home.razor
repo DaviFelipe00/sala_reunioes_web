@@ -14,34 +14,58 @@
 @rendermode InteractiveServer
 
 <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-6">
-    <div class="d-flex align-center justify-space-between mb-8">
-        <div>
-            <MudText Typo="Typo.h3" Color="Color.Primary" Class="fw-bold mb-1">Gestão de salas</MudText>
-            <MudText Typo="Typo.subtitle1" Style="color: var(--mud-palette-text-secondary); font-weight: 500;">
-                <MudIcon Icon="@Icons.Material.Filled.Event" Size="Size.Small" Class="mr-1 mb-n1"/>
-                @DateTime.Today.ToString("dddd, dd 'de' MMMM")
-            </MudText>
-        </div>
+    
+    @* --- CABEÇALHO COM NAVEGAÇÃO DE DATA --- *@
+    <div class="d-flex flex-column flex-md-row align-center justify-space-between mb-8 gap-4">
+        
+        @* Controles de Navegação (Anterior | Data | Próximo) *@
         <div class="d-flex align-center">
-            <MudChip T="string" Icon="@Icons.Material.Filled.CloudSync" Color="Color.Success" Variant="Variant.Text" Class="mr-4 fw-bold">Sincronizado</MudChip>
+            <MudIconButton Icon="@Icons.Material.Filled.ChevronLeft" OnClick="@(() => MudarDia(-1))" Color="Color.Primary" Size="Size.Large" />
+            
+            <div class="mx-4 text-center" style="min-width: 250px;">
+                <MudDatePicker Date="@_dataAtual" 
+                               DateChanged="@(d => MudarDiaEspecifico(d))" 
+                               DateFormat="dddd, dd 'de' MMMM"
+                               Variant="Variant.Text" 
+                               Adornment="Adornment.None"
+                               Class="fw-bold mud-input-text-center" 
+                               Style="font-size: 1.5rem; font-weight: 700; color: var(--mud-palette-primary); cursor: pointer;" />
+                
+                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                    @(_dataAtual.Date == DateTime.Today ? "Hoje" : _dataAtual.ToString("yyyy"))
+                </MudText>
+            </div>
+
+            <MudIconButton Icon="@Icons.Material.Filled.ChevronRight" OnClick="@(() => MudarDia(1))" Color="Color.Primary" Size="Size.Large" />
+        </div>
+
+        @* Ações (Ir para Hoje / Nova Reserva) *@
+        <div class="d-flex align-center gap-2">
+            <MudChip T="string" Icon="@Icons.Material.Filled.CloudSync" Color="Color.Success" Variant="Variant.Text" Class="mr-2 fw-bold d-none d-sm-flex">Sincronizado</MudChip>
+
+            @if (_dataAtual.Date != DateTime.Today)
+            {
+                <MudButton Variant="Variant.Outlined" Size="Size.Small" OnClick="@(() => MudarDiaEspecifico(DateTime.Today))">Ir para Hoje</MudButton>
+            }
             
             <MudButton Variant="Variant.Filled" 
                        Color="Color.Secondary" 
                        StartIcon="@Icons.Material.Filled.Add" 
                        OnClick="@(() => AbrirReserva(salas?.FirstOrDefault()?.Id ?? Guid.Empty, salas?.FirstOrDefault()?.Nome ?? ""))"
                        Disabled="@(salas == null || !salas.Any())"
-                       Class="rounded-pill px-6 shadow-lg" 
-                       Style="text-transform: none; font-weight: 700; height: 48px;">
+                       Class="rounded-pill px-6 shadow-lg fw-bold"
+                       Style="height: 48px;">
                 Nova Reserva
             </MudButton>
         </div>
     </div>
 
+    @* --- CONTEÚDO PRINCIPAL --- *@
     @if (salas == null)
     {
         <div class="d-flex flex-column align-center justify-center mt-12">
             <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Large" />
-            <MudText Class="mt-4" Color="Color.Primary">A atualizar disponibilidade...</MudText>
+            <MudText Class="mt-4" Color="Color.Primary">Carregando agenda...</MudText>
         </div>
     }
     else
@@ -50,6 +74,7 @@
             @foreach (var sala in salas)
             {
                 <div class="planner-column shadow-sm">
+                    @* Cabeçalho da Sala *@
                     <div class="sala-header">
                         <MudText Typo="Typo.h6" Align="Align.Center" Class="fw-bold" Color="Color.Primary">@sala.Nome</MudText>
                         <div class="d-flex justify-center align-center mt-1" style="opacity: 0.6;">
@@ -58,43 +83,41 @@
                         </div>
                     </div>
 
+                    @* Lista de Agendamentos *@
                     <div class="sala-content">
-                        @if (!sala.Agendamentos.Any(a => a.Inicio.ToLocalTime().Date == DateTime.Today))
+                        @if (!sala.Agendamentos.Any())
                         {
                             <div class="no-meetings d-flex flex-column align-center justify-center">
-                                <MudIcon Icon="@Icons.Material.Outlined.CheckCircle" Size="Size.Medium" Class="mb-1" Style="opacity: 0.2;"/>
-                                <MudText Typo="Typo.caption" Style="opacity: 0.4;">Disponível</MudText>
+                                <MudIcon Icon="@Icons.Material.Outlined.EventAvailable" Size="Size.Medium" Class="mb-1" Style="opacity: 0.2;"/>
+                                <MudText Typo="Typo.caption" Style="opacity: 0.4;">Livre</MudText>
                             </div>
                         }
                         else
                         {
-                            @foreach (var agenda in sala.Agendamentos.Where(a => a.Inicio.ToLocalTime().Date == DateTime.Today).OrderBy(a => a.Inicio))
+                            @foreach (var agenda in sala.Agendamentos.OrderBy(a => a.Inicio))
                             {
+                                // Recupera a cor ou define padrão
                                 var corAgenda = string.IsNullOrEmpty(agenda.Cor) ? "#007ACC" : agenda.Cor;
 
-                                <div class="meeting-card" 
-                                     style="@($"border-left: 5px solid {corAgenda};")">
-                                     
+                                <div class="meeting-card" style="@($"border-left: 5px solid {corAgenda};")">
+                                    
                                     <div class="d-flex align-center justify-space-between mb-2">
                                         <MudText Typo="Typo.caption" Class="fw-bold time-badge"
                                                  Style="@($"color: {corAgenda}; background-color: {corAgenda}1A;")">
                                             @agenda.Inicio.ToLocalTime().ToString("HH:mm") - @agenda.Fim.ToLocalTime().ToString("HH:mm")
                                         </MudText>
                                         
-                                        @* --- NOVA FUNCIONALIDADE: APENAS ADMIN PODE EXCLUIR --- *@
+                                        @* Lixeira visível apenas para Admin *@
                                         <AuthorizeView>
                                             <Authorized>
-                                                <MudIconButton Icon="@Icons.Material.Filled.Delete" 
-                                                               Size="Size.Small" 
-                                                               Color="Color.Error"
+                                                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
                                                                OnClick="@(() => ExcluirAgendamento(agenda))" 
-                                                               Title="Excluir Agendamento" />
+                                                               Title="Excluir" />
                                             </Authorized>
                                             <NotAuthorized>
-                                                <MudIcon Icon="@Icons.Material.Filled.MoreVert" Size="Size.Small" Style="opacity:0.3;"/>
+                                                <MudIcon Icon="@Icons.Material.Filled.Circle" Size="Size.Small" Style="@($"color:{corAgenda}; opacity:0.5;")"/>
                                             </NotAuthorized>
                                         </AuthorizeView>
-                                        @* --------------------------------------------------- *@
                                     </div>
 
                                     <MudText Typo="Typo.body2" Class="fw-bold text-truncate mb-2" Style="color: #1A2C38;">
@@ -106,7 +129,6 @@
                                                    Style="@($"background-color: {corAgenda}; color: white; height:20px; width:20px; font-size: 0.7rem;")">
                                             @(string.IsNullOrWhiteSpace(agenda.Responsavel) ? "?" : agenda.Responsavel[0])
                                         </MudAvatar>
-                                        
                                         <MudText Typo="Typo.caption" Style="color: var(--mud-palette-text-secondary); font-weight: 600;">
                                             @(agenda.Responsavel ?? "N/A")
                                         </MudText>
@@ -116,6 +138,7 @@
                         }
                     </div>
                     
+                    @* Botão de Agendar na Coluna *@
                     <div class="column-footer">
                         <MudButton Variant="Variant.Text" 
                                    StartIcon="@Icons.Material.Filled.Add" 
@@ -135,33 +158,19 @@
     .planner-column { background-color: #F8FAFC; border-radius: 16px; padding: 12px; display: flex; flex-direction: column; border: 1px solid rgba(0, 59, 92, 0.05); }
     .sala-header { padding: 8px 0 16px 0; border-bottom: 2px solid rgba(0, 59, 92, 0.05); margin-bottom: 16px; }
     .sala-content { flex-grow: 1; }
-    
-    .meeting-card { 
-        background: #FFFFFF; 
-        border-radius: 12px; 
-        padding: 12px; 
-        margin-bottom: 12px; 
-        cursor: pointer; 
-        transition: all 0.2s ease-in-out; 
-    }
-    
-    .meeting-card:hover { 
-        transform: translateY(-5px); 
-        background-color: #FDFDFD !important; 
-        box-shadow: 0 12px 20px rgba(0, 59, 92, 0.12); 
-    }
-    
-    .time-badge { 
-        padding: 2px 8px; 
-        border-radius: 6px; 
-    }
-    
+    .meeting-card { background: #FFFFFF; border-radius: 12px; padding: 12px; margin-bottom: 12px; cursor: pointer; transition: all 0.2s ease-in-out; }
+    .meeting-card:hover { transform: translateY(-5px); background-color: #FDFDFD !important; box-shadow: 0 12px 20px rgba(0, 59, 92, 0.12); }
+    .time-badge { padding: 2px 8px; border-radius: 6px; }
     .no-meetings { height: 80px; border: 2px dashed rgba(0,0,0,0.05); border-radius: 12px; margin-top: 8px; }
+    
+    /* Centralizar texto do DatePicker */
+    ::deep .mud-input-text-center input { text-align: center !important; }
 </style>
 
 @code {
     private List<Sala>? salas;
     private HubConnection? hubConnection;
+    private DateTime _dataAtual = DateTime.Today; // Estado da data selecionada
 
     protected override async Task OnInitializedAsync()
     {
@@ -186,8 +195,27 @@
 
     private async Task CarregarDados() 
     {
-        salas = await SalaService.ListarSalasComAgendamentosAsync();
-        StateHasChanged(); 
+        // Chama o método que busca pelo dia específico (_dataAtual)
+        // IMPORTANTE: Certifique-se que o SalaService.cs foi atualizado com o método ListarAgendaDoDiaAsync
+        salas = await SalaService.ListarAgendaDoDiaAsync(_dataAtual);
+        StateHasChanged();
+    }
+
+    // Navegar dias (-1 volta, +1 avança)
+    private async Task MudarDia(int dias)
+    {
+        _dataAtual = _dataAtual.AddDays(dias);
+        await CarregarDados();
+    }
+
+    // Selecionar data específica
+    private async Task MudarDiaEspecifico(DateTime? data)
+    {
+        if (data.HasValue)
+        {
+            _dataAtual = data.Value;
+            await CarregarDados();
+        }
     }
 
     private async Task AbrirReserva(Guid salaId, string nome)
@@ -197,7 +225,8 @@
         var parameters = new DialogParameters<ReservaDialog> 
         { 
             { x => x.SalaId, salaId }, 
-            { x => x.SalaNome, nome } 
+            { x => x.SalaNome, nome },
+            { x => x.DataInicial, _dataAtual } // Passa a data que o usuário está vendo
         };
         
         var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Small, FullWidth = true };
@@ -211,39 +240,23 @@
         }
     }
 
-    private void VerDetalhes(Agendamento a) 
-    { 
-        // Opcional: Mostrar detalhes completos ao clicar no card (fora o botão de delete)
-    }
-
-    // --- NOVO MÉTODO PARA EXCLUSÃO ---
     private async Task ExcluirAgendamento(Agendamento item)
     {
         bool? result = await DialogService.ShowMessageBox(
             "Confirmar Exclusão", 
-            $"Tem certeza que deseja remover a reunião '{item.Titulo}' de {item.Responsavel}?", 
+            $"Tem certeza que deseja remover a reunião '{item.Titulo}'?", 
             yesText:"Excluir", cancelText:"Cancelar");
 
         if (result == true)
         {
             var sucesso = await AgendamentoService.CancelarAgendamentoAsync(item.Id);
-            if (sucesso)
-            {
-                Snackbar.Add("Agendamento removido com sucesso!", Severity.Success);
-                await CarregarDados();
-            }
-            else
-            {
-                Snackbar.Add("Erro ao remover agendamento.", Severity.Error);
-            }
+            if (sucesso) Snackbar.Add("Agendamento removido!", Severity.Success);
+            else Snackbar.Add("Erro ao remover.", Severity.Error);
         }
     }
 
     public async ValueTask DisposeAsync()
     {
-        if (hubConnection is not null) 
-        {
-            await hubConnection.DisposeAsync();
-        }
+        if (hubConnection is not null) await hubConnection.DisposeAsync();
     }
 }
