@@ -5,91 +5,177 @@
 @attribute [Authorize]
 @inject RelatorioService Service
 
-<MudContainer MaxWidth="MaxWidth.Large" Class="mt-8 mb-8">
-    <MudText Typo="Typo.h4" Class="fw-bold mb-6 text-primary">Relatórios Gerenciais (30 dias)</MudText>
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-8 mb-16">
+    
+    @* --- CABEÇALHO: Título e Filtro de Data Visual --- *@
+    <div class="d-flex align-center justify-space-between mb-8 px-2">
+        <div>
+            <MudText Typo="Typo.h4" Class="fw-bold text-primary mb-1">Relatório Geral</MudText>
+            <MudText Typo="Typo.subtitle1" Color="Color.Secondary">Performance dos últimos 30 dias</MudText>
+        </div>
+        
+        <MudPaper Elevation="0" Outlined="true" Class="pa-2 d-flex align-center rounded-lg" Style="background-color: var(--mud-palette-background-grey);">
+            <MudIcon Icon="@Icons.Material.Filled.CalendarToday" Color="Color.Primary" Class="mr-2 ml-1"/>
+            <MudText Typo="Typo.body2" Class="fw-bold mr-2">
+                @DateTime.Now.AddDays(-30).ToString("dd MMM") - @DateTime.Now.ToString("dd MMM")
+            </MudText>
+        </MudPaper>
+    </div>
 
     @if (_dados == null)
     {
-        <div class="d-flex justify-center align-center" style="height: 400px;">
+        <div class="d-flex flex-column justify-center align-center" style="height: 50vh;">
             <MudProgressCircular Indeterminate="true" Color="Color.Primary" Size="Size.Large" />
+            <MudText Class="mt-4" Color="Color.Secondary">Processando indicadores...</MudText>
         </div>
     }
     else
     {
-        <MudGrid>
-            @* KPI 1 *@
+        <MudGrid Spacing="4" Class="mb-8">
+            @* ================================================================================= *@
+            @* LINHA 1: INDICADORES (Cards com Altura Padronizada)                               *@
+            @* ================================================================================= *@
+            
+            @* KPI 1: Volume Total *@
             <MudItem xs="12" sm="6" md="4">
-                <MudPaper Class="pa-4 d-flex flex-column align-center justify-center mud-width-full" Elevation="3">
-                    <MudIcon Icon="@Icons.Material.Filled.EventAvailable" Size="Size.Large" Color="Color.Primary" />
-                    <MudText Typo="Typo.h3" Class="mt-2 fw-bold">@_dados.TotalReunioes</MudText>
-                    <MudText Typo="Typo.subtitle1" Color="Color.Secondary">Total de Reuniões</MudText>
-                </MudPaper>
-            </MudItem>
-
-            @* KPI 2 *@
-            <MudItem xs="12" sm="6" md="4">
-                <MudPaper Class="pa-4 d-flex flex-column align-center justify-center mud-width-full" Elevation="3">
-                    <MudIcon Icon="@Icons.Material.Filled.Timer" Size="Size.Large" Color="Color.Info" />
-                    <MudText Typo="Typo.h3" Class="mt-2 fw-bold">@ConverteMinutos(_dados.TempoMedioMinutos)</MudText>
-                    <MudText Typo="Typo.subtitle1" Color="Color.Secondary">Duração Média</MudText>
-                </MudPaper>
-            </MudItem>
-
-            @* GRÁFICO CORRIGIDO *@
-            <MudItem xs="12" md="4">
-                <MudPaper Class="pa-4 d-flex flex-column align-center" Elevation="3" Style="height: 100%; min-height: 300px;">
-                    <MudText Typo="Typo.h6" Class="mb-4">Ocupação por Sala</MudText>
-                    @if (_dados.SalasMaisUsadas.Any() && _dados.SalasMaisUsadas.Sum(x => x.Valor) > 0)
-                    {
-                        @* Mudança: Pie Chart e tamanho relativo *@
-                        <MudChart ChartType="ChartType.Pie" 
-                                  InputData="@_dados.SalasMaisUsadas.Select(x => x.Valor).ToArray()" 
-                                  InputLabels="@_dados.SalasMaisUsadas.Select(x => $"{x.Nome} ({x.Valor})").ToArray()"
-                                  Width="100%" Height="200px" />
-                    }
-                    else
-                    {
-                        <div class="d-flex align-center justify-center flex-grow-1">
-                            <MudText Typo="Typo.caption" Color="Color.Secondary">Sem dados suficientes.</MudText>
+                <MudPaper Class="pa-6 rounded-xl d-flex flex-column justify-space-between" Elevation="2" 
+                          Style="height: 100%; min-height: 260px;">
+                    
+                    <div class="d-flex justify-space-between align-start">
+                        <div class="d-flex flex-column">
+                            <MudText Typo="Typo.overline" Color="Color.Secondary" Class="mb-1">TOTAL DE REUNIÕES</MudText>
+                            <MudText Typo="Typo.h2" Class="fw-bold text-primary">@_dados.TotalReunioes</MudText>
                         </div>
-                    }
+                        <MudAvatar Color="Color.Primary" Variant="Variant.Filled" Size="Size.Large" Class="rounded-lg shadow-sm">
+                            <MudIcon Icon="@Icons.Material.Filled.BarChart" Size="Size.Medium" />
+                        </MudAvatar>
+                    </div>
+
+                    <div class="mt-4">
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">Reuniões realizadas</MudText>
+                        <MudProgressLinear Color="Color.Primary" Value="100" Class="mt-2" Size="Size.Small" Rounded="true"/>
+                    </div>
                 </MudPaper>
             </MudItem>
 
-            @* TABELA MELHORADA *@
+            @* KPI 2: Tempo Médio *@
+            <MudItem xs="12" sm="6" md="4">
+                <MudPaper Class="pa-6 rounded-xl d-flex flex-column justify-space-between" Elevation="2" 
+                          Style="height: 100%; min-height: 260px;">
+                    
+                    <div class="d-flex justify-space-between align-start">
+                        <div class="d-flex flex-column">
+                            <MudText Typo="Typo.overline" Color="Color.Secondary" Class="mb-1">DURAÇÃO MÉDIA</MudText>
+                            <MudText Typo="Typo.h2" Class="fw-bold" Style="color: #2E7D32;">@ConverteMinutos(_dados.TempoMedioMinutos)</MudText>
+                        </div>
+                        <MudAvatar Color="Color.Success" Variant="Variant.Filled" Size="Size.Large" Class="rounded-lg shadow-sm">
+                            <MudIcon Icon="@Icons.Material.Filled.Timer" Size="Size.Medium" />
+                        </MudAvatar>
+                    </div>
+
+                    <div class="mt-4">
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">Tempo por sala</MudText>
+                        <MudProgressLinear Color="Color.Success" Value="70" Class="mt-2" Size="Size.Small" Rounded="true"/>
+                    </div>
+                </MudPaper>
+            </MudItem>
+
+            @* Gráfico: Ocupação (Agora no mesmo tamanho dos KPIs) *@
+            <MudItem xs="12" md="4">
+                <MudPaper Class="pa-4 rounded-xl d-flex flex-column" Elevation="2" 
+                          Style="height: 100%; min-height: 260px;">
+                    
+                    <div class="d-flex align-center justify-space-between mb-2 px-2">
+                        <MudText Typo="Typo.subtitle2" Class="fw-bold text-uppercase" Color="Color.Secondary">SALAS MAIS USADAS</MudText>
+                        <MudIcon Icon="@Icons.Material.Filled.PieChart" Color="Color.Default" Size="Size.Small"/>
+                    </div>
+                    
+                    @* Container Flex para centralizar o gráfico perfeitamente *@
+                    <div class="d-flex align-center justify-center flex-grow-1" style="overflow: hidden;">
+                        @if (_dados.SalasMaisUsadas.Any() && _dados.SalasMaisUsadas.Sum(x => x.Valor) > 0)
+                        {
+                            <MudChart ChartType="ChartType.Pie" 
+                                      InputData="@_dados.SalasMaisUsadas.Select(x => x.Valor).ToArray()" 
+                                      InputLabels="@_dados.SalasMaisUsadas.Select(x => x.Nome).ToArray()"
+                                      Width="140px" Height="140px" 
+                                      LegendPosition="Position.Right" />
+                        }
+                        else
+                        {
+                            <div class="d-flex flex-column align-center">
+                                <MudIcon Icon="@Icons.Material.Outlined.DataUsage" Size="Size.Large" Color="Color.Default" Style="opacity:0.2"/>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-2">Sem dados</MudText>
+                            </div>
+                        }
+                    </div>
+                </MudPaper>
+            </MudItem>
+
+            @* ================================================================================= *@
+            @* LINHA 2: TABELA DE PERFIL (Ocupa toda a largura)                                  *@
+            @* ================================================================================= *@
             <MudItem xs="12">
-                <MudTable Items="@_dados.PreferenciaCores" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="3" Class="mt-4">
-                    <ToolBarContent>
-                        <MudText Typo="Typo.h6" Color="Color.Primary">Perfil de Agendamento (Por Colaborador)</MudText>
-                    </ToolBarContent>
-                    <HeaderContent>
-                        <MudTh>Colaborador</MudTh>
-                        <MudTh>Tipo de Reunião Mais Frequente</MudTh>
-                        <MudTh>Total</MudTh>
-                    </HeaderContent>
-                    <RowTemplate>
-                        <MudTd DataLabel="Colaborador">
-                            <div class="d-flex align-center">
-                                <MudAvatar Color="Color.Primary" Size="Size.Small" Class="mr-3">
-                                    @context.NomeUsuario.ToUpper().FirstOrDefault()
-                                </MudAvatar>
-                                <MudText Typo="Typo.body2" Class="fw-bold">@context.NomeUsuario</MudText>
+                <MudPaper Class="rounded-xl overflow-hidden mt-2" Elevation="3">
+                    <MudToolBar Class="px-6 pt-4 pb-2 border-b">
+                        <div class="d-flex align-center">
+                            <MudAvatar Color="Color.Tertiary" Variant="Variant.Outlined" Size="Size.Medium" Class="mr-3">
+                                <MudIcon Icon="@Icons.Material.Filled.Group" Size="Size.Small"/>
+                            </MudAvatar>
+                            <div>
+                                <MudText Typo="Typo.h6" Class="fw-bold">Perfil dos Colaboradores</MudText>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">Classificação por volume e tipologia</MudText>
                             </div>
-                        </MudTd>
-                        <MudTd DataLabel="Tipo Favorito">
-                            <div class="d-flex align-center gap-2">
-                                <div style="@($"width: 16px; height: 16px; background-color: {context.CorFavorita}; border-radius: 50%; border: 1px solid #ddd;")"></div>
-                                <MudText Typo="Typo.body2">@context.NomeCorFavorita</MudText>
-                            </div>
-                        </MudTd>
-                        <MudTd DataLabel="Total">
-                            @context.TotalAgendamentos
-                        </MudTd>
-                    </RowTemplate>
-                    <PagerContent>
-                        <MudTablePager />
-                    </PagerContent>
-                </MudTable>
+                        </div>
+                        <MudSpacer />
+                    </MudToolBar>
+
+                    <MudTable Items="@_dados.PreferenciaCores" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="0" Class="pa-0">
+                        <HeaderContent>
+                            <MudTh Style="font-weight: 700; color: var(--mud-palette-text-secondary);">COLABORADOR</MudTh>
+                            <MudTh Style="font-weight: 700; color: var(--mud-palette-text-secondary);">TIPO FAVORITO</MudTh>
+                            <MudTh Style="font-weight: 700; color: var(--mud-palette-text-secondary); text-align:center;">VOLUME</MudTh>
+                            <MudTh Style="font-weight: 700; color: var(--mud-palette-text-secondary);">INTENSIDADE</MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd DataLabel="Colaborador">
+                                <div class="d-flex align-center py-2">
+                                    <MudAvatar Color="@GetAvatarColor(context.NomeUsuario)" Size="Size.Medium" Class="mr-3 shadow-sm font-weight-bold">
+                                        @context.NomeUsuario.ToUpper().FirstOrDefault()
+                                    </MudAvatar>
+                                    <div>
+                                        <MudText Typo="Typo.body2" Class="fw-bold">@context.NomeUsuario</MudText>
+                                        <MudText Typo="Typo.caption" Color="Color.Secondary">Rio Ave</MudText>
+                                    </div>
+                                </div>
+                            </MudTd>
+                            
+                            <MudTd DataLabel="Tipo Favorito">
+                                <MudChip T="string" Variant="Variant.Text" Size="Size.Small" Class="px-3"
+                                         Style="@($"background-color: {context.CorFavorita}15; color: {context.CorFavorita}; border: 1px solid {context.CorFavorita}40;")">
+                                    <div class="d-flex align-center">
+                                        <MudIcon Icon="@Icons.Material.Filled.Circle" Style="@($"color: {context.CorFavorita}; font-size: 10px; margin-right: 6px;")" />
+                                        <span class="fw-bold">@context.NomeCorFavorita</span>
+                                    </div>
+                                </MudChip>
+                            </MudTd>
+                            
+                            <MudTd DataLabel="Total" Style="text-align:center">
+                                <MudText Typo="Typo.h6" Class="fw-bold text-primary">@context.TotalAgendamentos</MudText>
+                            </MudTd>
+                            
+                            <MudTd DataLabel="Intensidade">
+                                <div class="d-flex align-center" style="max-width: 150px;">
+                                    <MudProgressLinear Color="Color.Primary" Rounded="true" Size="Size.Medium" 
+                                                       Value="@(CalcularPorcentagem(context.TotalAgendamentos))" 
+                                                       Class="mr-3" />
+                                </div>
+                            </MudTd>
+                        </RowTemplate>
+                        <PagerContent>
+                            <MudTablePager />
+                        </PagerContent>
+                    </MudTable>
+                </MudPaper>
             </MudItem>
         </MudGrid>
     }
@@ -97,10 +183,16 @@
 
 @code {
     private RelatorioDto? _dados;
+    private int _maxAgendamentos = 1;
 
     protected override async Task OnInitializedAsync()
     {
         _dados = await Service.GerarRelatorioAsync();
+        
+        if (_dados.PreferenciaCores.Any())
+        {
+            _maxAgendamentos = _dados.PreferenciaCores.Max(u => u.TotalAgendamentos);
+        }
     }
 
     private string ConverteMinutos(int minutos)
@@ -109,5 +201,18 @@
         var horas = minutos / 60;
         var resto = minutos % 60;
         return resto > 0 ? $"{horas}h {resto}m" : $"{horas}h";
+    }
+
+    private double CalcularPorcentagem(int total)
+    {
+        if (_maxAgendamentos == 0) return 0;
+        return ((double)total / _maxAgendamentos) * 100;
+    }
+
+    private Color GetAvatarColor(string nome)
+    {
+        if (string.IsNullOrEmpty(nome)) return Color.Primary;
+        var colors = new[] { Color.Primary, Color.Secondary, Color.Tertiary, Color.Info, Color.Success, Color.Warning };
+        return colors[Math.Abs(nome[0] % colors.Length)];
     }
 }

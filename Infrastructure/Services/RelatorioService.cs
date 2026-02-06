@@ -6,22 +6,21 @@ namespace SalaReunioes.Web.Infrastructure.Services;
 
 public class RelatorioService(IDbContextFactory<AppDbContext> dbFactory)
 {
-    // Mapeamento centralizado das cores (o mesmo do Dialog)
+    // --- MAPEAMENTO DE CORES (Baseado na entrada do ReservaDialog) ---
     private readonly Dictionary<string, string> _mapaCores = new()
     {
-        { "#007ACC", "Azul (Padrão)" },
-        { "#C62828", "Vermelho (Urgente)" },
-        { "#2E7D32", "Verde (Interno)" },
-        { "#F57C00", "Laranja (Brainstorm)" },
-        { "#7B1FA2", "Roxo (Treinamento)" },
-        { "#455A64", "Cinza (Manutenção)" }
+        { "#007ACC", "Alinhamento" },   // Azul
+        { "#C62828", "Urgente" },       // Vermelho
+        { "#2E7D32", "Cliente" },       // Verde
+        { "#F57C00", "Planejamento" },  // Laranja
+        { "#7B1FA2", "Treinamento" }    // Roxo
     };
 
     public async Task<RelatorioDto> GerarRelatorioAsync()
     {
         using var context = await dbFactory.CreateDbContextAsync();
         
-        // Filtro: Últimos 30 dias
+        // Filtra os últimos 30 dias para métricas mensais
         var inicioMes = DateTime.UtcNow.AddDays(-30);
         
         var dados = await context.Agendamentos
@@ -34,42 +33,42 @@ public class RelatorioService(IDbContextFactory<AppDbContext> dbFactory)
 
         if (dados.Count == 0) return relatorio;
 
-        // 1. Tempo Médio
+        // 1. KPI: Tempo Médio
         var duracaoTotalMinutos = dados.Sum(x => (x.Fim - x.Inicio).TotalMinutes);
         relatorio.TempoMedioMinutos = (int)(duracaoTotalMinutos / dados.Count);
 
-        // 2. Salas Mais Usadas (Top 5)
-        // Corrigido para garantir que Valor seja double para o gráfico
+        // 2. Gráfico: Salas Mais Usadas
         relatorio.SalasMaisUsadas = dados
             .GroupBy(x => x.Sala?.Nome ?? "Sem Sala")
             .Select(g => new DadoGrafico { 
                 Nome = g.Key, 
-                Valor = (double)g.Count() // Cast explícito para double
+                Valor = (double)g.Count() 
             })
             .OrderByDescending(x => x.Valor)
             .Take(5)
             .ToList();
 
-        // 3. Preferência de "Tipo" (Cor) por Usuário
+        // 3. Tabela: Preferência de Cor por Usuário (Traduzida)
         relatorio.PreferenciaCores = dados
             .GroupBy(x => x.Responsavel)
             .Select(gUsuario => {
-                // Pega a cor mais usada (Moda)
+                // Descobre a cor mais frequente desse usuário
                 var corMaisUsadaHex = gUsuario
                     .GroupBy(u => u.Cor)
                     .OrderByDescending(c => c.Count())
                     .First().Key;
 
-                // Tenta traduzir o Hex para o Nome, senão usa o Hex
-                var nomeCor = _mapaCores.ContainsKey(corMaisUsadaHex) 
+                // TRADUÇÃO: Busca o nome legível no dicionário
+                // Se a cor não estiver no mapa (ex: uma cor antiga ou personalizada), exibe "Outro"
+                var nomeCorLegivel = _mapaCores.ContainsKey(corMaisUsadaHex) 
                     ? _mapaCores[corMaisUsadaHex] 
-                    : "Personalizado";
+                    : "Outro / Personalizado"; 
 
                 return new UsuarioCorDto
                 {
                     NomeUsuario = gUsuario.Key,
-                    CorFavorita = corMaisUsadaHex, // Mantém o Hex para o visual (bolinha)
-                    NomeCorFavorita = nomeCor,     // Novo campo para o texto (ex: "Urgente")
+                    CorFavorita = corMaisUsadaHex,    // Usado para o ícone visual (bolinha)
+                    NomeCorFavorita = nomeCorLegivel, // Usado para o texto ("Alinhamento", etc)
                     TotalAgendamentos = gUsuario.Count()
                 };
             })
