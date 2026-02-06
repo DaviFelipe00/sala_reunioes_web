@@ -53,6 +53,7 @@ builder.Services.AddSignalR();
 builder.Services.AddScoped<ConfiguracaoService>();
 builder.Services.AddScoped<SalaService>();
 builder.Services.AddScoped<AgendamentoService>();
+builder.Services.AddScoped<RelatorioService>();
 
 // Componentes Blazor
 builder.Services.AddRazorComponents()
