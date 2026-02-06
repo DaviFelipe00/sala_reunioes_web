@@ -105,12 +105,11 @@
     public record OpcaoCor(string Nome, string Hex);
     private List<OpcaoCor> _coresDisponiveis = new()
     {
-        new("Azul", "#007ACC"),
-        new("Vermelho", "#C62828"),
-        new("Verde", "#2E7D32"),
-        new("Laranja", "#F57C00"),
-        new("Roxo (Treinamento)", "#7B1FA2"),
-        new("Cinza (Alinhamento)", "#455A64")
+        new("Alinhamento", "#007ACC"),       // Azul
+        new("Urgente", "#C62828"),   // Vermelho
+        new("Cliente", "#2E7D32"),   // Verde
+        new("Planejamento", "#F57C00"),        // Laranja
+        new("Treinamento", "#7B1FA2"),         // Roxo
     };
 
     protected override void OnInitialized()
