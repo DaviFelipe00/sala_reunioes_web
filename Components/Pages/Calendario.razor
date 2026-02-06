@@ -28,11 +28,11 @@
                 @* TOOLTIP: Mostra detalhes completos ao passar o mouse *@
                 <MudTooltip Text="@($"{evento?.NomeSala} | {evento?.Text} ({item.Start:HH:mm} - {item.End:HH:mm})")" 
                             Arrow="true" Placement="Placement.Top">
-                    
-                    @* CARD COMPACTO *@
+                     
+                    @* CARD COMPACTO COM A COR DEFINIDA NO AGENDAMENTO *@
                     <div class="d-flex align-center pa-1 mb-1 shadow-sm overflow-hidden" 
                          style="background-color: @(evento?.CorHex); border-radius: 4px; border-left: 3px solid rgba(0,0,0,0.3); cursor: pointer;">
-                        
+                         
                         @* Hora *@
                         <MudText Typo="Typo.caption" Class="fw-bold mr-2" Style="color: white; font-size: 0.7rem; min-width: 35px;">
                             @item.Start.ToString("HH:mm")
@@ -52,20 +52,6 @@
 @code {
     private List<CustomCalendarItem> _events = new();
     private HubConnection? hubConnection;
-
-    // Paleta de cores "Material Design"
-    private readonly string[] _paletaCores = new[] 
-    { 
-        "#1565C0", "#C62828", "#2E7D32", "#AD1457", 
-        "#EF6C00", "#4527A0", "#00695C", "#4E342E" 
-    };
-
-    private string ObterCorPorSala(string nomeSala)
-    {
-        if (string.IsNullOrEmpty(nomeSala)) return _paletaCores[0];
-        int index = Math.Abs(nomeSala.GetHashCode()) % _paletaCores.Length;
-        return _paletaCores[index];
-    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -87,22 +73,19 @@
 
     private async Task CarregarCalendario()
     {
-        // CORREÇÃO: Definindo intervalo de datas para buscar no banco
-        // Pegamos 1 mês para trás e 2 para frente para cobrir a visualização do calendário
         var hoje = DateTime.Today;
         var inicio = hoje.AddMonths(-1); 
         var fim = hoje.AddMonths(2);
 
-        // Passando as datas obrigatórias para o serviço
         var agendamentos = await Service.ListarAgendamentosCalendarioAsync(inicio, fim);
-        
         _events.Clear();
 
         foreach (var agendamento in agendamentos)
         {
             if (agendamento.Sala == null) continue;
 
-            var corSala = ObterCorPorSala(agendamento.Sala.Nome);
+            // CORREÇÃO: Usamos a cor do banco. Se for nula, usamos o Azul Padrão.
+            var corDefinida = string.IsNullOrEmpty(agendamento.Cor) ? "#007ACC" : agendamento.Cor;
 
             _events.Add(new CustomCalendarItem
             {
@@ -110,7 +93,7 @@
                 End = agendamento.Fim.ToLocalTime(),
                 Text = agendamento.Titulo,
                 NomeSala = agendamento.Sala.Nome,
-                CorHex = corSala 
+                CorHex = corDefinida // Agora vinculada diretamente ao agendamento
             });
         }
         StateHasChanged();
@@ -126,7 +109,7 @@
                      $"<b>Sala:</b> {evento.NomeSala}<br/>" +
                      $"<b>Horário:</b> {evento.Start:HH:mm} - {evento.End:HH:mm}<br/>" +
                      $"<b>Data:</b> {evento.Start:dd/MM/yyyy}"), 
-                 yesText: "Fechar"); 
+                 yesText: "Fechar");
          }
     }
 
@@ -135,7 +118,6 @@
         if (hubConnection is not null) await hubConnection.DisposeAsync();
     }
     
-    // Classe auxiliar para estender o item padrão do calendário
     public class CustomCalendarItem : CalendarItem
     {
         public string NomeSala { get; set; } = string.Empty;
