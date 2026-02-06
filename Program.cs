@@ -8,21 +8,20 @@ using SalaReunioes.Web.Components;
 using SalaReunioes.Web.Infrastructure.Data;
 using SalaReunioes.Web.Infrastructure.Services;
 using SalaReunioes.Web.Infrastructure.Hubs;
+using System.Security.Claims;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // ==========================================
-// 1. Configuração de Serviços (DI)
+// 1. Configuração de Serviços
 // ==========================================
 
-// Configuração do Banco de Dados (COM FACTORY)
-// Usar Factory é crucial no Blazor Server para evitar o erro "DbContext already being used"
+// Banco de Dados
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-
 builder.Services.AddDbContextFactory<AppDbContext>(options =>
     options.UseNpgsql(connectionString));
 
-// Configuração do ASP.NET Core Identity
+// Identity Core (Configuração de Senhas e Usuários)
 builder.Services.AddIdentityCore<IdentityUser>(options => {
     options.Password.RequireDigit = false;
     options.Password.RequiredLength = 6;
@@ -34,96 +33,131 @@ builder.Services.AddIdentityCore<IdentityUser>(options => {
 .AddSignInManager()
 .AddDefaultTokenProviders();
 
-// Autenticação e Autorização
-builder.Services.AddAuthentication(options =>
+// === AUTENTICAÇÃO (CORRIGIDO) ===
+// Guardamos o builder para encadear as configurações corretamente
+var authBuilder = builder.Services.AddAuthentication(options =>
 {
     options.DefaultScheme = IdentityConstants.ApplicationScheme;
     options.DefaultSignInScheme = IdentityConstants.ExternalScheme;
-})
-.AddIdentityCookies();
+});
+
+// Adiciona o suporte a Cookies do Identity
+authBuilder.AddIdentityCookies();
+
+// Adiciona o suporte à Conta Microsoft
+authBuilder.AddMicrosoftAccount(microsoftOptions =>
+{
+    // Lê as chaves do appsettings.json ou usa valores de placeholder para não quebrar
+    microsoftOptions.ClientId = builder.Configuration["Authentication:Microsoft:ClientId"] ?? "ID_PENDENTE";
+    microsoftOptions.ClientSecret = builder.Configuration["Authentication:Microsoft:ClientSecret"] ?? "SECRET_PENDENTE";
+});
+// ================================
 
 builder.Services.AddAuthorization();
 builder.Services.AddCascadingAuthenticationState(); 
 
-// Interface e Real-time (SignalR e MudBlazor)
+// MudBlazor e SignalR
 builder.Services.AddMudServices();
 builder.Services.AddSignalR();
 
-// Serviços de Negócio
+// Seus Serviços de Negócio
 builder.Services.AddScoped<ConfiguracaoService>();
 builder.Services.AddScoped<SalaService>();
 builder.Services.AddScoped<AgendamentoService>();
 builder.Services.AddScoped<RelatorioService>();
 
-// Componentes Blazor
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
 var app = builder.Build();
 
 // ==========================================
-// 2. Configuração de Localização (PT-BR)
+// 2. Configurações de Request (Middleware)
 // ==========================================
+
 var supportedCultures = new[] { new CultureInfo("pt-BR") };
-var localizationOptions = new RequestLocalizationOptions()
+app.UseRequestLocalization(new RequestLocalizationOptions()
     .SetDefaultCulture("pt-BR")
     .AddSupportedCultures("pt-BR")
-    .AddSupportedUICultures("pt-BR");
+    .AddSupportedUICultures("pt-BR"));
 
-app.UseRequestLocalization(localizationOptions);
-
-// ==========================================
-// 3. Inicialização de Dados (MIGRATE + SEED)
-// ==========================================
+// Inicialização e Seed do Banco de Dados
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
-    var logger = services.GetRequiredService<ILogger<Program>>();
-
     try
     {
-        logger.LogInformation("🚀 Inicializando migração do banco de dados...");
         var factory = services.GetRequiredService<IDbContextFactory<AppDbContext>>();
         using var context = factory.CreateDbContext();
-
         await context.Database.MigrateAsync();
-        logger.LogInformation("✅ Migração concluída com sucesso!");
-
-        logger.LogInformation("🌱 Iniciando Seed de dados...");
-        // Certifique-se que sua classe DbInitializer aceita IServiceProvider ou o contexto correto
         await DbInitializer.SeedAdminUser(services);
-        logger.LogInformation("✅ Seed concluído.");
     }
     catch (Exception ex)
     {
-        logger.LogError(ex, "🛑 ERRO CRÍTICO: Falha ao migrar ou inicializar o banco de dados.");
+        Console.WriteLine($"Erro no banco: {ex.Message}");
     }
 }
-
-// ==========================================
-// 4. Pipeline de Requisições HTTP
-// ==========================================
 
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
-    // O valor default do HSTS é 30 dias. Você pode querer alterar isso para produção.
     app.UseHsts();
 }
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
-
-// Ordem crítica: Antiforgery -> AuthN -> AuthZ
-app.UseAntiforgery(); 
-app.UseAuthentication(); 
+app.UseAntiforgery();
+app.UseAuthentication();
 app.UseAuthorization();
 
 // ==========================================
-// 5. Endpoints
+// 3. ENDPOINTS
 // ==========================================
 
-// Endpoint de Login (Formulário Simples)
+// Endpoint de Login Externo (Microsoft)
+// CORREÇÃO CRÍTICA: Adicionado [FromForm] para ler os dados enviados pelo formulário HTML
+app.MapPost("/Account/ExternalLogin", (
+    [FromForm] string provider, 
+    [FromForm] string returnUrl, 
+    SignInManager<IdentityUser> signInManager) =>
+{
+    var redirectUrl = $"/Account/ExternalCallback?returnUrl={returnUrl}";
+    var properties = signInManager.ConfigureExternalAuthenticationProperties(provider, redirectUrl);
+    return Results.Challenge(properties, new[] { provider });
+});
+
+// Endpoint de Callback (Retorno da Microsoft)
+app.MapGet("/Account/ExternalCallback", async (string returnUrl, SignInManager<IdentityUser> signInManager, UserManager<IdentityUser> userManager) =>
+{
+    var info = await signInManager.GetExternalLoginInfoAsync();
+    if (info == null) return Results.Redirect("/?error=external-login-failed");
+
+    // Tenta logar se o usuário já existe e está vinculado
+    var result = await signInManager.ExternalLoginSignInAsync(info.LoginProvider, info.ProviderKey, isPersistent: true);
+    if (result.Succeeded) return Results.Redirect(returnUrl);
+
+    // Se não existe, cria o usuário
+    var email = info.Principal.FindFirstValue(ClaimTypes.Email);
+    if (email != null)
+    {
+        var user = await userManager.FindByEmailAsync(email);
+        
+        if (user == null)
+        {
+            user = new IdentityUser { UserName = email, Email = email, EmailConfirmed = true };
+            await userManager.CreateAsync(user);
+        }
+
+        // Vincula o login externo ao usuário
+        await userManager.AddLoginAsync(user, info);
+        await signInManager.SignInAsync(user, isPersistent: true);
+        return Results.Redirect(returnUrl);
+    }
+
+    return Results.Redirect("/?error=create-user-failed");
+});
+
+// Endpoint de Login Tradicional (Admin)
 app.MapPost("Account/Login", async (
     [FromForm] string UserName, 
     [FromForm] string Password, 
@@ -131,15 +165,10 @@ app.MapPost("Account/Login", async (
     SignInManager<IdentityUser> signInManager) =>
 {
     var result = await signInManager.PasswordSignInAsync(UserName, Password, isPersistent: true, lockoutOnFailure: false);
-    
-    if (result.Succeeded)
-    {
-        return Results.Redirect(ReturnUrl ?? "/");
-    }
-    
-    return Results.Redirect("/login?error=1");
+    if (result.Succeeded) return Results.Redirect(ReturnUrl ?? "/dashboard");
+    return Results.Redirect("/?error=1");
 })
-.DisableAntiforgery(); // Desativado aqui para facilitar form post simples, mas idealmente deve-se enviar o token
+.DisableAntiforgery();
 
 // Endpoint de Logout
 app.MapPost("Account/Logout", async (SignInManager<IdentityUser> signInManager) =>
@@ -149,10 +178,7 @@ app.MapPost("Account/Logout", async (SignInManager<IdentityUser> signInManager) 
 })
 .DisableAntiforgery();
 
-// Hubs e Componentes Blazor
 app.MapHub<AgendamentoHub>("/agendamentoHub");
-
-app.MapRazorComponents<App>()
-    .AddInteractiveServerRenderMode();
+app.MapRazorComponents<App>().AddInteractiveServerRenderMode();
 
 app.Run();

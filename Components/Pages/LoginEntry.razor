@@ -14,9 +14,9 @@
             <img src="rioave.png" alt="Rio Ave" style="height: 70px; filter: brightness(0) invert(1) drop-shadow(0 0 10px rgba(255,255,255,0.3));" />
         </div>
 
-        <div class="d-flex flex-column align-center mb-10">
+        <div class="text-center mb-10">
             <MudText Typo="Typo.h4" Align="Align.Center" Class="fw-bold text-white mb-2" Style="letter-spacing: 1px; font-family: 'Montserrat', sans-serif;">
-                @(_isAdminMode ? "Acesso Admin" : "Bem-vindo!")
+                @(_isAdminMode ? "Acesso Admin" : "Bem-vindo")
             </MudText>
             <MudText Typo="Typo.body1" Align="Align.Center" Style="color: rgba(255,255,255,0.7);">
                 @(_isAdminMode ? "Gestão do Sistema" : "Faça login para continuar")
@@ -26,7 +26,7 @@
         @if (showError)
         {
             <MudAlert Severity="Severity.Error" Variant="Variant.Filled" Class="mb-6 rounded-lg glass-alert" Dense="true" ContentAlignment="HorizontalAlignment.Center">
-                Dados inválidos.
+                Dados inválidos ou erro no login.
             </MudAlert>
         }
 
@@ -34,6 +34,8 @@
         {
             <div class="animation-fade-in w-100">
                 <form action="Account/ExternalLogin" method="post" class="w-100 mb-8">
+                    <AntiforgeryToken />
+                    
                     <input type="hidden" name="provider" value="Microsoft" />
                     <input type="hidden" name="returnUrl" value="/dashboard" />
                     
@@ -45,7 +47,7 @@
 
                 <div class="d-flex justify-center mt-6">
                     <MudLink OnClick="ToggleAdminMode" Underline="Underline.None" Class="subtle-link" Style="font-size: 0.9rem;">
-                        Acesso Administrador
+                        Acesso Administrativo
                     </MudLink>
                 </div>
             </div>
@@ -55,6 +57,7 @@
         {
             <div class="animation-fade-in w-100">
                 <form action="Account/Login?ReturnUrl=%2Fdashboard" method="post" style="width: 100%;">
+                    <AntiforgeryToken />
                     
                     <div class="input-group mb-5">
                         <MudIcon Icon="@Icons.Material.Outlined.Person" Class="input-icon" />
@@ -85,7 +88,7 @@
 
     </MudPaper>
     
-    <MudText Typo="Typo.caption" Class="mt-8 text-white-50 text-center" Style="opacity: 1;">
+    <MudText Typo="Typo.caption" Class="mt-8 text-white-50 text-center" Style="opacity: 0.4;">
         &copy; 2026 Rio Ave
     </MudText>
 
