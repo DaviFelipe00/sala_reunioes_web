@@ -4,13 +4,11 @@
 @using Microsoft.AspNetCore.SignalR.Client
 @implements IAsyncDisposable
 
-@* 1. INJEÇÃO DE DEPENDÊNCIA CORRIGIDA: *@
 @inject SalaService SalaService 
 @inject AgendamentoService AgendamentoService
 @inject IDialogService DialogService
 @inject NavigationManager Navigation
 
-@* 2. RENDER MODE: *@
 @rendermode InteractiveServer
 
 <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-6">
@@ -59,7 +57,6 @@
                     </div>
 
                     <div class="sala-content">
-                        @* 3. CONSISTÊNCIA DE DATA: *@
                         @if (!sala.Agendamentos.Any(a => a.Inicio.ToLocalTime().Date == DateTime.Today))
                         {
                             <div class="no-meetings d-flex flex-column align-center justify-center">
@@ -71,18 +68,33 @@
                         {
                             @foreach (var agenda in sala.Agendamentos.Where(a => a.Inicio.ToLocalTime().Date == DateTime.Today).OrderBy(a => a.Inicio))
                             {
-                                <div class="meeting-card" @onclick="@(() => VerDetalhes(agenda))">
+                                @* DEFINE A COR PADRÃO SE ESTIVER VAZIA *@
+                                var corAgenda = string.IsNullOrEmpty(agenda.Cor) ? "#007ACC" : agenda.Cor;
+
+                                <div class="meeting-card" 
+                                     @onclick="@(() => VerDetalhes(agenda))"
+                                     style="@($"border-left: 5px solid {corAgenda};")">
+                                     
                                     <div class="d-flex align-center justify-space-between mb-2">
-                                        <MudText Typo="Typo.caption" Class="fw-bold time-badge">
+                                        @* Badge de tempo com a cor do agendamento (texto e fundo transparente) *@
+                                        <MudText Typo="Typo.caption" Class="fw-bold time-badge"
+                                                 Style="@($"color: {corAgenda}; background-color: {corAgenda}1A;")">
                                             @agenda.Inicio.ToLocalTime().ToString("HH:mm") - @agenda.Fim.ToLocalTime().ToString("HH:mm")
                                         </MudText>
                                         <MudIcon Icon="@Icons.Material.Filled.MoreVert" Size="Size.Small" Style="opacity:0.3;"/>
                                     </div>
-                                    <MudText Typo="Typo.body2" Class="fw-bold text-truncate mb-2" Style="color: #1A2C38;">@agenda.Titulo</MudText>
+
+                                    <MudText Typo="Typo.body2" Class="fw-bold text-truncate mb-2" Style="color: #1A2C38;">
+                                        @agenda.Titulo
+                                    </MudText>
+
                                     <div class="d-flex align-center">
-                                        <MudAvatar Size="Size.Small" Class="mr-2" Color="Color.Info" Style="height:20px; width:20px; font-size: 0.7rem;">
+                                        @* Avatar com a cor do agendamento *@
+                                        <MudAvatar Size="Size.Small" Class="mr-2" 
+                                                   Style="@($"background-color: {corAgenda}; color: white; height:20px; width:20px; font-size: 0.7rem;")">
                                             @(string.IsNullOrWhiteSpace(agenda.Responsavel) ? "?" : agenda.Responsavel[0])
                                         </MudAvatar>
+                                        
                                         <MudText Typo="Typo.caption" Style="color: var(--mud-palette-text-secondary); font-weight: 600;">
                                             @(agenda.Responsavel ?? "N/A")
                                         </MudText>
@@ -111,9 +123,29 @@
     .planner-column { background-color: #F8FAFC; border-radius: 16px; padding: 12px; display: flex; flex-direction: column; border: 1px solid rgba(0, 59, 92, 0.05); }
     .sala-header { padding: 8px 0 16px 0; border-bottom: 2px solid rgba(0, 59, 92, 0.05); margin-bottom: 16px; }
     .sala-content { flex-grow: 1; }
-    .meeting-card { background: #FFFFFF; border-radius: 12px; padding: 12px; margin-bottom: 12px; border-left: 5px solid #007ACC; cursor: pointer; transition: all 0.2s ease-in-out; }
-    .meeting-card:hover { transform: translateY(-5px); background-color: #FDFDFD !important; box-shadow: 0 12px 20px rgba(0, 59, 92, 0.12); }
-    .time-badge { color: #007ACC; background: rgba(0, 122, 204, 0.08); padding: 2px 8px; border-radius: 6px; }
+    
+    .meeting-card { 
+        background: #FFFFFF; 
+        border-radius: 12px; 
+        padding: 12px; 
+        margin-bottom: 12px; 
+        /* Border-left agora é inline no HTML */
+        cursor: pointer; 
+        transition: all 0.2s ease-in-out; 
+    }
+    
+    .meeting-card:hover { 
+        transform: translateY(-5px); 
+        background-color: #FDFDFD !important; 
+        box-shadow: 0 12px 20px rgba(0, 59, 92, 0.12); 
+    }
+    
+    .time-badge { 
+        /* Cores agora são inline no HTML */
+        padding: 2px 8px; 
+        border-radius: 6px; 
+    }
+    
     .no-meetings { height: 80px; border: 2px dashed rgba(0,0,0,0.05); border-radius: 12px; margin-top: 8px; }
 </style>
 
@@ -125,7 +157,6 @@
     {
         await CarregarDados();
 
-        // 4. TRATAMENTO DE ERRO NO SIGNALR
         try {
             hubConnection = new HubConnectionBuilder()
                 .WithUrl(Navigation.ToAbsoluteUri("/agendamentoHub"))
@@ -145,7 +176,6 @@
 
     private async Task CarregarDados() 
     {
-        // CORREÇÃO: Usando SalaService para listar as salas
         salas = await SalaService.ListarSalasComAgendamentosAsync();
         StateHasChanged(); 
     }
@@ -171,7 +201,11 @@
         }
     }
 
-    private void VerDetalhes(Agendamento a) { /* Modal de detalhes */ }
+    private void VerDetalhes(Agendamento a) 
+    { 
+        // Implementar modal de detalhes se necessário
+        DialogService.ShowMessageBox("Detalhes", $"Reunião: {a.Titulo}\nResponsável: {a.Responsavel}");
+    }
 
     public async ValueTask DisposeAsync()
     {

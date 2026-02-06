@@ -5,7 +5,7 @@ namespace SalaReunioes.Web.Domain.Entities;
 public class Agendamento
 {
     [Key]
-    public Guid Id { get; set; } // <--- A propriedade DEVE existir, apenas sem o "= Guid.NewGuid()"
+    public Guid Id { get; set; } 
 
     [Required(ErrorMessage = "A sala deve ser selecionada.")]
     public Guid SalaId { get; set; }
@@ -27,6 +27,10 @@ public class Agendamento
     [Required(ErrorMessage = "A data e hora de término são obrigatórias.")]
     [Display(Name = "Fim")]
     public DateTime Fim { get; set; }
+
+    // --- CAMPO NOVO PARA PERSONALIZAÇÃO ---
+    [StringLength(7)] // Garante o formato hexadecimal (#RRGGBB)
+    public string Cor { get; set; } = "#007ACC"; // Define um azul padrão caso o usuário não escolha
 
     // Propriedade de navegação
     public virtual Sala? Sala { get; set; }
