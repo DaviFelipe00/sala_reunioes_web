@@ -12,7 +12,7 @@
                 <NotAuthorized>
                     @if (context.User.Identity?.IsAuthenticated != true)
                     {
-                        @* Melhor Prática: Componente dedicado para redirecionar *@
+                        @* Melhor Prática: Componente dedicado para redirecionar usuários não logados *@
                         <RedirectToLogin />
                     }
                     else
@@ -62,7 +62,10 @@
         protected override void OnInitialized()
         {
             // O parâmetro forceLoad: true garante que o cookie de auth seja reavaliado corretamente
-            Navigation.NavigateTo("/login", forceLoad: true);
+            
+            // MUDANÇA AQUI: Redireciona para a raiz "/" (Login Principal) 
+            // em vez de "/login" (que era o login específico de admin)
+            Navigation.NavigateTo("/", forceLoad: true);
         }
     }
 }

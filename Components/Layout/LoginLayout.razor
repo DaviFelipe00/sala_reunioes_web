@@ -1,0 +1,32 @@
+@inherits LayoutComponentBase
+
+<MudThemeProvider Theme="_currentTheme" />
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+<MudLayout Class="login-layout-bg">
+    <MudMainContent Class="d-flex align-center justify-center" Style="height: 100vh; padding: 0;">
+        @Body
+    </MudMainContent>
+</MudLayout>
+
+<style>
+    .login-layout-bg {
+        background: linear-gradient(135deg, #002147 0%, #000F1F 100%);
+        min-height: 100vh;
+    }
+</style>
+
+@code {
+    private MudTheme _currentTheme = new MudTheme()
+    {
+        PaletteLight = new PaletteLight()
+        {
+            Primary = "#002147",
+            Secondary = "#00509d",
+            AppbarBackground = "#002147",
+            Background = "#F4F7F9"
+        }
+    };
+}

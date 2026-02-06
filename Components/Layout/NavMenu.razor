@@ -2,8 +2,9 @@
 @using Microsoft.AspNetCore.Components.Authorization
 
 <MudNavMenu Class="mt-4">
-    @* Link Público: Home / Agendamentos *@
-    <MudNavLink Href="" Match="NavLinkMatch.All" Icon="@Icons.Material.Outlined.SpaceDashboard">
+    @* Link Principal: Home / Agendamentos *@
+    @* ALTERADO: Href="dashboard" para não conflitar com a nova tela de Login na raiz *@
+    <MudNavLink Href="dashboard" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Outlined.SpaceDashboard">
         Agendamentos
     </MudNavLink>
 
@@ -22,7 +23,7 @@
                 Gerenciar Salas
             </MudNavLink>
 
-            @* --- NOVO: Link para Configurações --- *@
+            @* Link para Configurações *@
             <MudNavLink Href="admin/configuracoes" Icon="@Icons.Material.Filled.AccessTime">
                 Mudar horário
             </MudNavLink>
@@ -31,21 +32,21 @@
                 Relatórios
             </MudNavLink>
             
-            @* Dica Sênior: O botão "Sair" (Logout) foi movido para o UserMenu (avatar no topo) 
-               para seguir o padrão de UI moderno. *@
+            @* O botão "Sair" fica no UserMenu (avatar) *@
         </Authorized>
         
         <NotAuthorized>
+            @* Mantido conforme solicitado: Link para o login antigo de admin *@
             <MudDivider Class="my-2" DividerType="DividerType.Middle" />
-          <MudNavLink Href="login" Icon="@Icons.Material.Filled.AdminPanelSettings">
-            Acesso Admin
+            <MudNavLink Href="login" Icon="@Icons.Material.Filled.AdminPanelSettings">
+                Acesso Admin
             </MudNavLink>
         </NotAuthorized>
     </AuthorizeView>
 
     @* ------------------------------------------- *@
 
-    @* Mantive o link para o Perfil para fácil acesso *@
+    @* Link para o Perfil *@
     <MudNavLink Href="perfil" Icon="@Icons.Material.Filled.Person">
         Meu Perfil
     </MudNavLink>

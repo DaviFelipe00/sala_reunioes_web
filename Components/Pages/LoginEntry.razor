@@ -1,0 +1,86 @@
+@page "/"
+@layout SalaReunioes.Web.Components.Layout.LoginLayout
+@using Microsoft.AspNetCore.Components.Authorization
+@inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager Navigation
+
+<PageTitle>Entrar - Rio Ave</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.ExtraSmall">
+    <MudPaper Elevation="12" Class="pa-8 rounded-xl d-flex flex-column align-center relative overflow-hidden">
+        
+        <div style="position: absolute; top: 0; left: 0; right: 0; height: 8px; background: linear-gradient(90deg, #007ACC, #002147);"></div>
+
+        <div class="mb-6 mt-2">
+            <img src="rioave.png" alt="Rio Ave" style="height: 60px;" />
+        </div>
+
+        <MudText Typo="Typo.h5" Class="fw-bold text-center mb-1" Color="Color.Primary">Bem-vindo</MudText>
+        <MudText Typo="Typo.body2" Class="text-center mud-text-secondary mb-8">
+            Faça login para reservar sua sala
+        </MudText>
+
+        @if (showError)
+        {
+            <MudAlert Severity="Severity.Error" Variant="Variant.Filled" Class="mb-4 rounded-lg" Dense="true">
+                Credenciais inválidas. Tente novamente.
+            </MudAlert>
+        }
+
+        <form action="Account/Login?ReturnUrl=%2Fdashboard" method="post" style="width: 100%;">
+            
+            <MudTextField T="string" Name="UserName" Label="E-mail ou Usuário" 
+                          Variant="Variant.Outlined" Margin="Margin.Dense"
+                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Person"
+                          Class="mb-4" Required="true" />
+
+            <MudTextField T="string" Name="Password" Label="Senha" 
+                          Variant="Variant.Outlined" Margin="Margin.Dense"
+                          InputType="InputType.Password"
+                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Lock"
+                          Class="mb-6" Required="true" />
+
+            <MudButton ButtonType="ButtonType.Submit" 
+                       Variant="Variant.Filled" 
+                       Color="Color.Primary" 
+                       Size="Size.Large" 
+                       FullWidth="true" 
+                       Class="rounded-lg py-3 fw-bold shadow-md">
+                ENTRAR
+            </MudButton>
+        </form>
+
+        <MudDivider Class="my-6" />
+
+        <MudText Typo="Typo.caption" Align="Align.Center" Color="Color.Secondary">
+            &copy; 2026 Rio Ave. Todos os direitos reservados.
+        </MudText>
+    </MudPaper>
+</MudContainer>
+
+@code {
+    private bool showError = false;
+
+    [CascadingParameter]
+    private Task<AuthenticationState>? authenticationStateTask { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Se o usuário já estiver logado, manda direto para o Dashboard
+        if (authenticationStateTask != null)
+        {
+            var authState = await authenticationStateTask;
+            if (authState.User.Identity is { IsAuthenticated: true })
+            {
+                Navigation.NavigateTo("/dashboard", forceLoad: true);
+            }
+        }
+
+        // Verifica erro de login via QueryString (padrão do endpoint Account/Login)
+        var uri = Navigation.ToAbsoluteUri(Navigation.Uri);
+        if (Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(uri.Query).ContainsKey("error"))
+        {
+            showError = true;
+        }
+    }
+}

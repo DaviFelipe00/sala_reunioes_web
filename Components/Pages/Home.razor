@@ -1,4 +1,6 @@
-﻿@page "/"
+﻿@page "/dashboard"
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
 @using SalaReunioes.Web.Domain.Entities
 @using SalaReunioes.Web.Infrastructure.Services
 @using Microsoft.AspNetCore.SignalR.Client
