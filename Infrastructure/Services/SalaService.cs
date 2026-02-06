@@ -11,10 +11,15 @@ public class SalaService(IDbContextFactory<AppDbContext> dbFactory, IHubContext<
     public async Task<List<Sala>> ListarSalasComAgendamentosAsync()
     {
         using var context = await dbFactory.CreateDbContextAsync();
-        var agoraUtc = DateTime.UtcNow;
+        
+        // CORREÇÃO CRÍTICA:
+        // Antes: DateTime.UtcNow (filtrava tudo que já começou)
+        // Agora: DateTime.UtcNow.Date (Pega tudo de HOJE em diante)
+        // Adicionamos AddDays(-1) por segurança de fuso horário para garantir que o dia local inteiro apareça
+        var filtroInicio = DateTime.UtcNow.Date.AddDays(-1);
 
         return await context.Salas
-            .Include(s => s.Agendamentos.Where(a => a.Inicio >= agoraUtc))
+            .Include(s => s.Agendamentos.Where(a => a.Inicio >= filtroInicio))
             .OrderBy(s => s.Nome)
             .AsNoTracking()
             .ToListAsync();

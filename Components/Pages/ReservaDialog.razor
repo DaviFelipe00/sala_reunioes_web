@@ -8,28 +8,57 @@
     <DialogContent>
         <MudForm @ref="_form" @bind-IsValid="@_success">
             <MudGrid>
-                @* Título *@
+                @* 1. Finalidade (Título) *@
                 <MudItem xs="12">
-                    <MudTextField T="string" Label="Título da Reunião" 
+                    <MudTextField T="string" Label="Finalidade da Reunião" 
                                   @bind-Value="Agendamento.Titulo" 
-                                  Required="true" Variant="Variant.Outlined" Margin="Margin.Dense" /> 
+                                  Required="true" 
+                                  RequiredError="A finalidade é obrigatória."
+                                  Variant="Variant.Outlined" 
+                                  Margin="Margin.Dense"
+                                  Immediate="true" /> 
                 </MudItem>
                 
-                @* Responsável *@
+                @* 2. Responsável *@
                 <MudItem xs="12">
                     <MudTextField T="string" Label="Responsável" 
                                   @bind-Value="Agendamento.Responsavel" 
-                                  Required="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                                  Required="true" 
+                                  RequiredError="O responsável é obrigatório."
+                                  Variant="Variant.Outlined" 
+                                  Margin="Margin.Dense"
+                                  Immediate="true" />
                 </MudItem>
 
-                @* Data *@
+                @* 3. Cores com Nomes (Simplificado) *@
+                <MudItem xs="12">
+                    <MudSelect T="string" Label="Cor de Identificação" @bind-Value="Agendamento.Cor"
+                               Variant="Variant.Outlined" Margin="Margin.Dense"
+                               AnchorOrigin="Origin.BottomCenter">
+                        @foreach (var cor in _coresDisponiveis)
+                        {
+                            <MudSelectItem Value="@cor.Hex">
+                                <div class="d-flex align-center">
+                                    <MudIcon Icon="@Icons.Material.Filled.Circle" Style="@($"color:{cor.Hex}; margin-right: 8px;")" Size="Size.Small"/>
+                                    @cor.Nome
+                                </div>
+                            </MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudDivider Class="my-2"/>
+                    <MudText Typo="Typo.caption">Definição de Horário</MudText>
+                </MudItem>
+
+                @* 4. Data e Hora *@
                 <MudItem xs="12" sm="4">
                     <MudDatePicker Label="Data" @bind-Date="_dataSelecionada" 
                                    DateFormat="dd/MM/yyyy" Variant="Variant.Outlined" Margin="Margin.Dense" 
                                    Editable="true" />
                 </MudItem>
 
-                @* --- ALTERAÇÃO 1: TimePicker com Digitação (Input) --- *@
                 <MudItem xs="6" sm="4">
                     <MudTextField T="TimeSpan?" Label="Início" @bind-Value="_horaInicio"
                                   InputType="InputType.Time"
@@ -44,31 +73,16 @@
                                   Required="true" />
                 </MudItem>
 
-                @* --- ALTERAÇÃO 2: Seletor de Cores com Nomes --- *@
-                <MudItem xs="12">
-                    <MudSelect T="string" Label="Cor do Agendamento" @bind-Value="Agendamento.Cor"
-                               Variant="Variant.Outlined" Margin="Margin.Dense"
-                               AnchorOrigin="Origin.BottomCenter">
-                        @foreach (var cor in _coresDisponiveis)
-                        {
-                            <MudSelectItem Value="@cor.Hex">
-                                <div class="d-flex align-center">
-                                    <div style="@($"width: 16px; height: 16px; border-radius: 50%; background-color: {cor.Hex}; margin-right: 8px;")"></div>
-                                    @cor.Nome
-                                </div>
-                            </MudSelectItem>
-                        }
-                    </MudSelect>
-                </MudItem>
-
             </MudGrid>
         </MudForm>
     </DialogContent>
     <DialogActions>
         <MudButton OnClick="Cancel">Cancelar</MudButton>
-        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit" Disabled="@(!_success || _processando)">
+        
+        @* CORREÇÃO: Removido a trava Disabled para o botão ficar sempre "clicável" *@
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit" Disabled="@(_processando)">
             @if (_processando) { <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true"/> }
-            else { <MudText>Salvar</MudText> }
+            else { <MudText>Salvar Agendamento</MudText> }
         </MudButton>
     </DialogActions>
 </MudDialog>
@@ -87,17 +101,16 @@
     private TimeSpan? _horaInicio;
     private TimeSpan? _horaFim;
 
-    // Classe auxiliar para mapear Nome -> Hex
+    // Lista simples de cores com nomes em Português
     public record OpcaoCor(string Nome, string Hex);
-
     private List<OpcaoCor> _coresDisponiveis = new()
     {
-        new("Azul Rio Ave", "#007ACC"),
-        new("Vermelho Urgente", "#C62828"),
-        new("Verde Reunião", "#2E7D32"),
-        new("Laranja Brainstorm", "#F57C00"),
-        new("Roxo Treinamento", "#7B1FA2"),
-        new("Cinza Interno", "#455A64")
+        new("Azul", "#007ACC"),
+        new("Vermelho", "#C62828"),
+        new("Verde", "#2E7D32"),
+        new("Laranja", "#F57C00"),
+        new("Roxo (Treinamento)", "#7B1FA2"),
+        new("Cinza (Alinhamento)", "#455A64")
     };
 
     protected override void OnInitialized()
@@ -125,6 +138,7 @@
 
     private async Task Submit()
     {
+        // Força a validação ao clicar no botão
         await _form.Validate();
         
         if (_form.IsValid && _dataSelecionada.HasValue && _horaInicio.HasValue && _horaFim.HasValue)
@@ -162,6 +176,11 @@
             {
                 _processando = false;
             }
+        }
+        else
+        {
+            // Opcional: Avisar se o form estiver inválido visualmente
+            // Snackbar.Add("Preencha todos os campos obrigatórios.", Severity.Warning);
         }
     }
 }
