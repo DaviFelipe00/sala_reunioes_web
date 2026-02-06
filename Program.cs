@@ -2,12 +2,16 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Localization;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using System.Globalization;
+using System.Security.Claims;
 using MudBlazor.Services;
 using SalaReunioes.Web.Components;
 using SalaReunioes.Web.Infrastructure.Data;
 using SalaReunioes.Web.Infrastructure.Services;
 using SalaReunioes.Web.Infrastructure.Hubs;
+using FluentValidation;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -15,14 +19,13 @@ var builder = WebApplication.CreateBuilder(args);
 // 1. Configuração de Serviços (DI)
 // ==========================================
 
-// Configuração do Banco de Dados (COM FACTORY)
-// Usar Factory é crucial no Blazor Server para evitar o erro "DbContext already being used"
+// Configuração do Banco de Dados (PostgreSQL)
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
 builder.Services.AddDbContextFactory<AppDbContext>(options =>
     options.UseNpgsql(connectionString));
 
-// Configuração do ASP.NET Core Identity
+// Configuração do ASP.NET Core Identity (Usuários e Senhas)
 builder.Services.AddIdentityCore<IdentityUser>(options => {
     options.Password.RequireDigit = false;
     options.Password.RequiredLength = 6;
@@ -34,18 +37,41 @@ builder.Services.AddIdentityCore<IdentityUser>(options => {
 .AddSignInManager()
 .AddDefaultTokenProviders();
 
-// Autenticação e Autorização
+// --- AUTENTICAÇÃO (Cookies + Microsoft) ---
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultScheme = IdentityConstants.ApplicationScheme;
     options.DefaultSignInScheme = IdentityConstants.ExternalScheme;
 })
-.AddIdentityCookies();
+.AddIdentityCookies() // Gerencia os cookies do Identity
+.ApplicationCookie!.Configure(opt => opt.LoginPath = "/login"); // Redireciona não logados
+
+// Configuração do Login Microsoft com Restrição de Domínio
+builder.Services.AddAuthentication()
+    .AddMicrosoftAccount(microsoftOptions =>
+    {
+        // Pega do appsettings.json ou usa valores de desenvolvimento/segredo
+        microsoftOptions.ClientId = builder.Configuration["Authentication:Microsoft:ClientId"] ?? throw new Exception("ClientId Microsoft não configurado!");
+        microsoftOptions.ClientSecret = builder.Configuration["Authentication:Microsoft:ClientSecret"] ?? throw new Exception("ClientSecret Microsoft não configurado!");
+
+        // EVENTO CRÍTICO: Validação do Domínio Rio Ave
+        microsoftOptions.Events.OnCreatingTicket = context =>
+        {
+            var email = context.Principal?.FindFirst(ClaimTypes.Email)?.Value;
+
+            if (string.IsNullOrEmpty(email) || !email.EndsWith("@rioave.com.br", StringComparison.OrdinalIgnoreCase))
+            {
+                context.Fail("Acesso permitido apenas para contas @rioave.com.br");
+            }
+
+            return Task.CompletedTask;
+        };
+    });
 
 builder.Services.AddAuthorization();
 builder.Services.AddCascadingAuthenticationState(); 
 
-// Interface e Real-time (SignalR e MudBlazor)
+// Interface e Real-time
 builder.Services.AddMudServices();
 builder.Services.AddSignalR();
 
@@ -54,6 +80,9 @@ builder.Services.AddScoped<ConfiguracaoService>();
 builder.Services.AddScoped<SalaService>();
 builder.Services.AddScoped<AgendamentoService>();
 builder.Services.AddScoped<RelatorioService>();
+
+// Validadores (Opcional - se você seguiu a dica do FluentValidation)
+builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 
 // Componentes Blazor
 builder.Services.AddRazorComponents()
@@ -86,35 +115,34 @@ using (var scope = app.Services.CreateScope())
         var factory = services.GetRequiredService<IDbContextFactory<AppDbContext>>();
         using var context = factory.CreateDbContext();
 
+        // Aplica migrações pendentes automaticamente
         await context.Database.MigrateAsync();
-        logger.LogInformation("✅ Migração concluída com sucesso!");
+        logger.LogInformation("✅ Migração concluída.");
 
         logger.LogInformation("🌱 Iniciando Seed de dados...");
-        // Certifique-se que sua classe DbInitializer aceita IServiceProvider ou o contexto correto
         await DbInitializer.SeedAdminUser(services);
         logger.LogInformation("✅ Seed concluído.");
     }
     catch (Exception ex)
     {
-        logger.LogError(ex, "🛑 ERRO CRÍTICO: Falha ao migrar ou inicializar o banco de dados.");
+        logger.LogError(ex, "🛑 ERRO CRÍTICO: Falha ao inicializar o banco de dados.");
     }
 }
 
 // ==========================================
-// 4. Pipeline de Requisições HTTP
+// 4. Pipeline HTTP
 // ==========================================
 
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
-    // O valor default do HSTS é 30 dias. Você pode querer alterar isso para produção.
     app.UseHsts();
 }
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 
-// Ordem crítica: Antiforgery -> AuthN -> AuthZ
+// Ordem Obrigatória: Antiforgery -> AuthN -> AuthZ
 app.UseAntiforgery(); 
 app.UseAuthentication(); 
 app.UseAuthorization();
@@ -123,7 +151,7 @@ app.UseAuthorization();
 // 5. Endpoints
 // ==========================================
 
-// Endpoint de Login (Formulário Simples)
+// Login Padrão (Admin/Senha)
 app.MapPost("Account/Login", async (
     [FromForm] string UserName, 
     [FromForm] string Password, 
@@ -139,9 +167,21 @@ app.MapPost("Account/Login", async (
     
     return Results.Redirect("/login?error=1");
 })
-.DisableAntiforgery(); // Desativado aqui para facilitar form post simples, mas idealmente deve-se enviar o token
+.DisableAntiforgery(); 
 
-// Endpoint de Logout
+// --- NOVO: Login Microsoft (Endpoint de Desafio) ---
+app.MapGet("Account/LoginMicrosoft", (string? returnUrl) =>
+{
+    var properties = new AuthenticationProperties
+    {
+        RedirectUri = returnUrl ?? "/"
+    };
+    
+    // Inicia o fluxo OAuth com a Microsoft
+    return Results.Challenge(properties, new[] { "Microsoft" });
+});
+
+// Logout
 app.MapPost("Account/Logout", async (SignInManager<IdentityUser> signInManager) =>
 {
     await signInManager.SignOutAsync();
@@ -149,7 +189,7 @@ app.MapPost("Account/Logout", async (SignInManager<IdentityUser> signInManager) 
 })
 .DisableAntiforgery();
 
-// Hubs e Componentes Blazor
+// Mapeamento Blazor e Hubs
 app.MapHub<AgendamentoHub>("/agendamentoHub");
 
 app.MapRazorComponents<App>()
