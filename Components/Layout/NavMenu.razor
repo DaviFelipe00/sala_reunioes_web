@@ -21,9 +21,14 @@
             <MudNavLink Href="admin/salas" Icon="@Icons.Material.Filled.MeetingRoom">
                 Gerenciar Salas
             </MudNavLink>
+
+            @* --- NOVO: Link para Configurações --- *@
+            <MudNavLink Href="admin/configuracoes" Icon="@Icons.Material.Filled.Settings">
+                Mudar horários
+            </MudNavLink>
             
             @* Dica Sênior: O botão "Sair" (Logout) foi movido para o UserMenu (avatar no topo) 
-               para seguir o padrão de UI moderno, mas se quiser aqui também, avise. *@
+               para seguir o padrão de UI moderno. *@
         </Authorized>
         
         <NotAuthorized>
@@ -33,13 +38,11 @@
             </MudNavLink>
         </NotAuthorized>
     </AuthorizeView>
+
     @* ------------------------------------------- *@
 
     @* Mantive o link para o Perfil para fácil acesso *@
     <MudNavLink Href="perfil" Icon="@Icons.Material.Filled.Person">
         Meu Perfil
     </MudNavLink>
-
-    @* Removi Counter e Weather pois parecem ser restos do template padrão. 
-       Se precisar deles, basta adicionar mais tags <MudNavLink> aqui. *@
 </MudNavMenu>
