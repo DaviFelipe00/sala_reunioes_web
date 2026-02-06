@@ -2,12 +2,14 @@
 @using SalaReunioes.Web.Domain.Entities
 @using SalaReunioes.Web.Infrastructure.Services
 @using Microsoft.AspNetCore.SignalR.Client
+@using Microsoft.AspNetCore.Components.Authorization
 @implements IAsyncDisposable
 
 @inject SalaService SalaService 
 @inject AgendamentoService AgendamentoService
 @inject IDialogService DialogService
 @inject NavigationManager Navigation
+@inject ISnackbar Snackbar
 
 @rendermode InteractiveServer
 
@@ -68,20 +70,31 @@
                         {
                             @foreach (var agenda in sala.Agendamentos.Where(a => a.Inicio.ToLocalTime().Date == DateTime.Today).OrderBy(a => a.Inicio))
                             {
-                                @* DEFINE A COR PADRÃO SE ESTIVER VAZIA *@
                                 var corAgenda = string.IsNullOrEmpty(agenda.Cor) ? "#007ACC" : agenda.Cor;
 
                                 <div class="meeting-card" 
-                                     @onclick="@(() => VerDetalhes(agenda))"
                                      style="@($"border-left: 5px solid {corAgenda};")">
                                      
                                     <div class="d-flex align-center justify-space-between mb-2">
-                                        @* Badge de tempo com a cor do agendamento (texto e fundo transparente) *@
                                         <MudText Typo="Typo.caption" Class="fw-bold time-badge"
                                                  Style="@($"color: {corAgenda}; background-color: {corAgenda}1A;")">
                                             @agenda.Inicio.ToLocalTime().ToString("HH:mm") - @agenda.Fim.ToLocalTime().ToString("HH:mm")
                                         </MudText>
-                                        <MudIcon Icon="@Icons.Material.Filled.MoreVert" Size="Size.Small" Style="opacity:0.3;"/>
+                                        
+                                        @* --- NOVA FUNCIONALIDADE: APENAS ADMIN PODE EXCLUIR --- *@
+                                        <AuthorizeView>
+                                            <Authorized>
+                                                <MudIconButton Icon="@Icons.Material.Filled.Delete" 
+                                                               Size="Size.Small" 
+                                                               Color="Color.Error"
+                                                               OnClick="@(() => ExcluirAgendamento(agenda))" 
+                                                               Title="Excluir Agendamento" />
+                                            </Authorized>
+                                            <NotAuthorized>
+                                                <MudIcon Icon="@Icons.Material.Filled.MoreVert" Size="Size.Small" Style="opacity:0.3;"/>
+                                            </NotAuthorized>
+                                        </AuthorizeView>
+                                        @* --------------------------------------------------- *@
                                     </div>
 
                                     <MudText Typo="Typo.body2" Class="fw-bold text-truncate mb-2" Style="color: #1A2C38;">
@@ -89,7 +102,6 @@
                                     </MudText>
 
                                     <div class="d-flex align-center">
-                                        @* Avatar com a cor do agendamento *@
                                         <MudAvatar Size="Size.Small" Class="mr-2" 
                                                    Style="@($"background-color: {corAgenda}; color: white; height:20px; width:20px; font-size: 0.7rem;")">
                                             @(string.IsNullOrWhiteSpace(agenda.Responsavel) ? "?" : agenda.Responsavel[0])
@@ -129,7 +141,6 @@
         border-radius: 12px; 
         padding: 12px; 
         margin-bottom: 12px; 
-        /* Border-left agora é inline no HTML */
         cursor: pointer; 
         transition: all 0.2s ease-in-out; 
     }
@@ -141,7 +152,6 @@
     }
     
     .time-badge { 
-        /* Cores agora são inline no HTML */
         padding: 2px 8px; 
         border-radius: 6px; 
     }
@@ -203,8 +213,30 @@
 
     private void VerDetalhes(Agendamento a) 
     { 
-        // Implementar modal de detalhes se necessário
-        DialogService.ShowMessageBox("Detalhes", $"Reunião: {a.Titulo}\nResponsável: {a.Responsavel}");
+        // Opcional: Mostrar detalhes completos ao clicar no card (fora o botão de delete)
+    }
+
+    // --- NOVO MÉTODO PARA EXCLUSÃO ---
+    private async Task ExcluirAgendamento(Agendamento item)
+    {
+        bool? result = await DialogService.ShowMessageBox(
+            "Confirmar Exclusão", 
+            $"Tem certeza que deseja remover a reunião '{item.Titulo}' de {item.Responsavel}?", 
+            yesText:"Excluir", cancelText:"Cancelar");
+
+        if (result == true)
+        {
+            var sucesso = await AgendamentoService.CancelarAgendamentoAsync(item.Id);
+            if (sucesso)
+            {
+                Snackbar.Add("Agendamento removido com sucesso!", Severity.Success);
+                await CarregarDados();
+            }
+            else
+            {
+                Snackbar.Add("Erro ao remover agendamento.", Severity.Error);
+            }
+        }
     }
 
     public async ValueTask DisposeAsync()
