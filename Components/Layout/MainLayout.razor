@@ -1,4 +1,6 @@
-﻿@inherits LayoutComponentBase
+﻿@* Components/Layout/MainLayout.razor *@
+
+@inherits LayoutComponentBase
 @rendermode InteractiveServer
 
 <MudThemeProvider Theme="_currentTheme" />
@@ -9,11 +11,9 @@
 <MudLayout>
     <MudAppBar Elevation="1" Color="Color.Primary" Fixed="true">
         
-        @* --- NOVO COMPONENTE: Botão de Menu Animado --- *@
-        <MenuHamburguer IsOpen="_drawerOpen" OnClick="DrawerToggle" />
-        @* ---------------------------------------------- *@
+        @* 1. REMOVIDO: <MenuHamburguer ... /> *@
         
-        <div class="d-flex align-center ml-2">
+        <div class="d-flex align-center ml-4"> @* Ajustei ml-2 para ml-4 para dar margem já que não tem botão *@
             <img src="rioave.png" alt="Rio Ave" style="height:32px;" class="mr-3" />
         </div>
 
@@ -25,7 +25,11 @@
         </MudStack>
     </MudAppBar>
 
-    <MudDrawer @bind-Open="_drawerOpen" ClipMode="DrawerClipMode.Always" Elevation="2" Variant="@DrawerVariant.Responsive">
+    @* 2. ALTERADO: Open="true" fixo e Variant="Persistent" *@
+    <MudDrawer Open="true" 
+               ClipMode="DrawerClipMode.Always" 
+               Elevation="2" 
+               Variant="@DrawerVariant.Persistent">
         <NavMenu />
     </MudDrawer>
 
@@ -37,8 +41,8 @@
 </MudLayout>
 
 @code {
-    bool _drawerOpen = true;
-
+    // 3. REMOVIDO: A variável bool _drawerOpen e o método DrawerToggle() não são mais necessários
+    
     private MudTheme _currentTheme = new MudTheme()
     {
         PaletteLight = new PaletteLight()
@@ -53,7 +57,4 @@
             ActionDefault = "#FFFFFF" 
         }
     };
-
-    // Método que é chamado pelo evento OnClick do MenuHamburguer
-    void DrawerToggle() => _drawerOpen = !_drawerOpen;
 }
