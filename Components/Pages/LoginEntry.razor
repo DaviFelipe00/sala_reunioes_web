@@ -4,69 +4,219 @@
 @inject AuthenticationStateProvider AuthStateProvider
 @inject NavigationManager Navigation
 
-<PageTitle>Entrar - Rio Ave</PageTitle>
+<PageTitle>Login - Rio Ave</PageTitle>
 
-<MudContainer MaxWidth="MaxWidth.ExtraSmall">
-    <MudPaper Elevation="12" Class="pa-8 rounded-xl d-flex flex-column align-center relative overflow-hidden">
+<MudContainer MaxWidth="MaxWidth.Small" Class="d-flex flex-column align-center justify-center" Style="min-height: 100vh;">
+    
+    <MudPaper Elevation="0" Class="pa-12 rounded-xl glass-card animation-fade-in-up">
         
-        <div style="position: absolute; top: 0; left: 0; right: 0; height: 8px; background: linear-gradient(90deg, #007ACC, #002147);"></div>
-
-        <div class="mb-6 mt-2">
-            <img src="rioave.png" alt="Rio Ave" style="height: 60px;" />
+        <div class="d-flex justify-center mb-8">
+            <img src="rioave.png" alt="Rio Ave" style="height: 70px; filter: brightness(0) invert(1) drop-shadow(0 0 10px rgba(255,255,255,0.3));" />
         </div>
 
-        <MudText Typo="Typo.h5" Class="fw-bold text-center mb-1" Color="Color.Primary">Bem-vindo</MudText>
-        <MudText Typo="Typo.body2" Class="text-center mud-text-secondary mb-8">
-            Faça login para reservar sua sala
-        </MudText>
+        <div class="d-flex flex-column align-center mb-10">
+            <MudText Typo="Typo.h4" Align="Align.Center" Class="fw-bold text-white mb-2" Style="letter-spacing: 1px; font-family: 'Montserrat', sans-serif;">
+                @(_isAdminMode ? "Acesso Admin" : "Bem-vindo!")
+            </MudText>
+            <MudText Typo="Typo.body1" Align="Align.Center" Style="color: rgba(255,255,255,0.7);">
+                @(_isAdminMode ? "Gestão do Sistema" : "Faça login para continuar")
+            </MudText>
+        </div>
 
         @if (showError)
         {
-            <MudAlert Severity="Severity.Error" Variant="Variant.Filled" Class="mb-4 rounded-lg" Dense="true">
-                Credenciais inválidas. Tente novamente.
+            <MudAlert Severity="Severity.Error" Variant="Variant.Filled" Class="mb-6 rounded-lg glass-alert" Dense="true" ContentAlignment="HorizontalAlignment.Center">
+                Dados inválidos.
             </MudAlert>
         }
 
-        <form action="Account/Login?ReturnUrl=%2Fdashboard" method="post" style="width: 100%;">
-            
-            <MudTextField T="string" Name="UserName" Label="E-mail ou Usuário" 
-                          Variant="Variant.Outlined" Margin="Margin.Dense"
-                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Person"
-                          Class="mb-4" Required="true" />
+        @if (!_isAdminMode)
+        {
+            <div class="animation-fade-in w-100">
+                <form action="Account/ExternalLogin" method="post" class="w-100 mb-8">
+                    <input type="hidden" name="provider" value="Microsoft" />
+                    <input type="hidden" name="returnUrl" value="/dashboard" />
+                    
+                    <button type="submit" class="custom-btn btn-microsoft">
+                        <MudIcon Icon="@Icons.Custom.Brands.Microsoft" Class="mr-3" Size="Size.Small"/>
+                        Entrar com Microsoft
+                    </button>
+                </form>
 
-            <MudTextField T="string" Name="Password" Label="Senha" 
-                          Variant="Variant.Outlined" Margin="Margin.Dense"
-                          InputType="InputType.Password"
-                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Lock"
-                          Class="mb-6" Required="true" />
+                <div class="d-flex justify-center mt-6">
+                    <MudLink OnClick="ToggleAdminMode" Underline="Underline.None" Class="subtle-link" Style="font-size: 0.9rem;">
+                        Acesso Administrador
+                    </MudLink>
+                </div>
+            </div>
+        }
 
-            <MudButton ButtonType="ButtonType.Submit" 
-                       Variant="Variant.Filled" 
-                       Color="Color.Primary" 
-                       Size="Size.Large" 
-                       FullWidth="true" 
-                       Class="rounded-lg py-3 fw-bold shadow-md">
-                ENTRAR
-            </MudButton>
-        </form>
+        @if (_isAdminMode)
+        {
+            <div class="animation-fade-in w-100">
+                <form action="Account/Login?ReturnUrl=%2Fdashboard" method="post" style="width: 100%;">
+                    
+                    <div class="input-group mb-5">
+                        <MudIcon Icon="@Icons.Material.Outlined.Person" Class="input-icon" />
+                        <input type="text" name="UserName" placeholder="Usuário" required class="glass-input" />
+                    </div>
 
-        <MudDivider Class="my-6" />
+                    <div class="input-group mb-3">
+                        <MudIcon Icon="@Icons.Material.Outlined.Lock" Class="input-icon" />
+                        <input type="password" name="Password" placeholder="Senha" required class="glass-input" />
+                    </div>
 
-        <MudText Typo="Typo.caption" Align="Align.Center" Color="Color.Secondary">
-            &copy; 2026 Rio Ave. Todos os direitos reservados.
-        </MudText>
+                    <div class="d-flex justify-end mb-8">
+                        <MudLink Href="#" Underline="Underline.Hover" Class="forgot-pass">Esqueceu a senha?</MudLink>
+                    </div>
+
+                    <button type="submit" class="custom-btn btn-primary-glow">
+                        LOGIN
+                    </button>
+                </form>
+
+                <div class="d-flex justify-center mt-8">
+                    <MudLink OnClick="ToggleAdminMode" Underline="Underline.None" Class="subtle-link">
+                        Voltar
+                    </MudLink>
+                </div>
+            </div>
+        }
+
     </MudPaper>
+    
+    <MudText Typo="Typo.caption" Class="mt-8 text-white-50 text-center" Style="opacity: 1;">
+        &copy; 2026 Rio Ave
+    </MudText>
+
 </MudContainer>
+
+<style>
+    /* === ESTILO VIDRO (GLASSMORPHISM DARK) === */
+    .glass-card {
+        width: 100%;
+        max-width: 450px;
+        background: rgba(255, 255, 255, 0.05) !important;
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        box-shadow: 0 15px 35px 0 rgba(0, 0, 0, 0.4);
+        color: white;
+    }
+
+    /* === INPUTS CUSTOMIZADOS === */
+    .input-group {
+        position: relative;
+        display: flex;
+        align-items: center;
+        background: rgba(0, 0, 0, 0.25);
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        transition: 0.3s;
+        padding: 4px 0;
+    }
+
+    .input-group:focus-within {
+        border-color: #2196F3;
+        background: rgba(0, 0, 0, 0.5);
+        box-shadow: 0 0 10px rgba(33, 150, 243, 0.2);
+    }
+
+    .input-icon {
+        color: rgba(255, 255, 255, 0.6);
+        margin-left: 16px;
+    }
+
+    .glass-input {
+        width: 100%;
+        background: transparent;
+        border: none;
+        color: white;
+        padding: 14px 16px;
+        outline: none;
+        font-size: 1rem;
+    }
+    
+    .glass-input::placeholder {
+        color: rgba(255, 255, 255, 0.3);
+    }
+
+    /* === BOTÕES === */
+    .custom-btn {
+        width: 100%;
+        padding: 16px;
+        border-radius: 12px;
+        border: none;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: 'Montserrat', sans-serif;
+        font-size: 1rem;
+        letter-spacing: 0.5px;
+    }
+
+    .btn-primary-glow {
+        background: linear-gradient(90deg, #2196F3, #21CBF3);
+        color: white;
+        box-shadow: 0 4px 20px rgba(33, 150, 243, 0.3);
+    }
+    .btn-primary-glow:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(33, 150, 243, 0.5);
+    }
+
+    .btn-microsoft {
+        background: rgba(255, 255, 255, 0.08);
+        color: white;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+    }
+    .btn-microsoft:hover {
+        background: rgba(255, 255, 255, 0.15);
+        transform: translateY(-2px);
+    }
+
+    /* === TEXTOS === */
+    .text-white { color: #ffffff !important; }
+    
+    .forgot-pass {
+        color: rgba(255, 255, 255, 0.6) !important;
+        font-size: 0.85rem !important;
+    }
+    .forgot-pass:hover { color: white !important; }
+
+    .subtle-link {
+        color: rgba(255, 255, 255, 0.6) !important;
+        transition: 0.2s;
+    }
+    .subtle-link:hover { color: #2196F3 !important; }
+
+    .glass-alert {
+        background: rgba(244, 67, 54, 0.2) !important;
+        color: #ffcdd2 !important;
+        border: 1px solid rgba(244, 67, 54, 0.3);
+    }
+
+    /* === ANIMAÇÕES === */
+    .animation-fade-in-down { animation: fadeInDown 0.8s ease-out; }
+    .animation-fade-in-up { animation: fadeInUp 0.8s ease-out; }
+    .animation-fade-in { animation: fadeIn 0.5s ease-in; }
+
+    @@keyframes fadeInDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+    @@keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    @@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+</style>
 
 @code {
     private bool showError = false;
+    private bool _isAdminMode = false;
 
-    [CascadingParameter]
-    private Task<AuthenticationState>? authenticationStateTask { get; set; }
+    [CascadingParameter] private Task<AuthenticationState>? authenticationStateTask { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
-        // Se o usuário já estiver logado, manda direto para o Dashboard
         if (authenticationStateTask != null)
         {
             var authState = await authenticationStateTask;
@@ -76,11 +226,16 @@
             }
         }
 
-        // Verifica erro de login via QueryString (padrão do endpoint Account/Login)
         var uri = Navigation.ToAbsoluteUri(Navigation.Uri);
         if (Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(uri.Query).ContainsKey("error"))
         {
             showError = true;
         }
+    }
+
+    void ToggleAdminMode()
+    {
+        _isAdminMode = !_isAdminMode;
+        showError = false;
     }
 }
